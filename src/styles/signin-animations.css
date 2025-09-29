@@ -1,0 +1,96 @@
+/* Enhanced animations for signin UI */
+@layer components {
+  .tab-transition {
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    transform-origin: center;
+  }
+
+  .tab-transition:hover {
+    transform: scale(1.02);
+  }
+
+  .tab-active {
+    transform: scale(1);
+  }
+
+  .content-transition {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  }
+
+  .content-enter {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .content-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .content-exit {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .content-exit-active {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .smooth-background {
+    transition: background-color 0.3s ease-in-out;
+  }
+
+  .backdrop-blur-smooth {
+    backdrop-filter: blur(4px);
+    transition: backdrop-filter 0.2s ease-in-out;
+  }
+
+  /* Custom loading animation */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fadeInUp {
+    animation: fadeInUp 0.4s ease-out;
+  }
+
+  /* Smooth tab indicator */
+  .tab-indicator {
+    transition: left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                width 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
+                transform 0.2s ease-in-out;
+  }
+
+  /* Enhanced focus styles */
+  .focus-visible-ring {
+    transition: box-shadow 0.2s ease-in-out;
+  }
+
+  .focus-visible-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5);
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .tab-transition,
+    .content-transition,
+    .smooth-background,
+    .backdrop-blur-smooth,
+    .tab-indicator {
+      transition: none !important;
+    }
+    
+    .animate-fadeInUp {
+      animation: none !important;
+    }
+  }
+}

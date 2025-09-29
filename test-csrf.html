@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSRF Test</title>
+</head>
+<body>
+    <h1>CSRF Token Test</h1>
+    <button id="getToken">Get CSRF Token</button>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('getToken').addEventListener('click', async () => {
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/csrf-token', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                document.getElementById('result').innerHTML = `
+                    <p>Status: ${response.status}</p>
+                    <p>Headers: ${JSON.stringify([...response.headers.entries()])}</p>
+                    <p>Response: ${JSON.stringify(await response.text())}</p>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

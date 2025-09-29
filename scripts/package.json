@@ -1,0 +1,21 @@
+{
+  "name": "keycloak-init-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for initializing Keycloak realms and clients",
+  "main": "init-keycloak.js",
+  "scripts": {
+    "init": "node init-keycloak.js",
+    "create-admin": "node create-permanent-admin.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "node-fetch": "^2.7.0"
+  },
+  "keywords": [
+    "keycloak",
+    "init",
+    "docker"
+  ],
+  "author": "Crowdeval Team",
+  "license": "MIT"
+}

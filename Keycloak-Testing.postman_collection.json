@@ -1,0 +1,550 @@
+{
+  "info": {
+    "name": "Keycloak Authentication Testing",
+    "description": "Complete test suite for Keycloak authentication with Customer, Developer, and Vendor realms",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "KEYCLOAK_URL",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "ACCESS_TOKEN",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "REFRESH_TOKEN",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Customer Realm",
+      "item": [
+        {
+          "name": "Login - Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test for successful authentication",
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"ACCESS_TOKEN\", jsonData.access_token);",
+                  "    pm.collectionVariables.set(\"REFRESH_TOKEN\", jsonData.refresh_token);",
+                  "    console.log(\"✅ Login successful - tokens saved\");",
+                  "    ",
+                  "    // Decode token info",
+                  "    const payload = JSON.parse(atob(jsonData.access_token.split('.')[1]));",
+                  "    console.log(\"User:\", payload.preferred_username || payload.sub);",
+                  "    console.log(\"Email:\", payload.email);",
+                  "    console.log(\"Expires:\", new Date(payload.exp * 1000));",
+                  "    console.log(\"Realm:\", payload.iss);",
+                  "    ",
+                  "    pm.test(\"Status code is 200\", function () {",
+                  "        pm.response.to.have.status(200);",
+                  "    });",
+                  "    ",
+                  "    pm.test(\"Response has access token\", function () {",
+                  "        pm.expect(jsonData.access_token).to.exist;",
+                  "    });",
+                  "    ",
+                  "    pm.test(\"Response has refresh token\", function () {",
+                  "        pm.expect(jsonData.refresh_token).to.exist;",
+                  "    });",
+                  "    ",
+                  "} else {",
+                  "    console.log(\"❌ Login failed:\", pm.response.text());",
+                  "    ",
+                  "    pm.test(\"Login failed - check credentials\", function () {",
+                  "        pm.response.to.have.status(401);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "password",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "crowdeval-customer",
+                  "type": "text"
+                },
+                {
+                  "key": "username",
+                  "value": "test@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "testpassword",
+                  "type": "text"
+                },
+                {
+                  "key": "scope",
+                  "value": "openid profile email",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{KEYCLOAK_URL}}/realms/Customer/protocol/openid-connect/token",
+              "host": [
+                "{{KEYCLOAK_URL}}"
+              ],
+              "path": [
+                "realms",
+                "Customer",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Info - Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const userInfo = pm.response.json();",
+                  "    console.log(\"✅ User info retrieved successfully\");",
+                  "    console.log(\"User details:\", JSON.stringify(userInfo, null, 2));",
+                  "    ",
+                  "    pm.test(\"Status code is 200\", function () {",
+                  "        pm.response.to.have.status(200);",
+                  "    });",
+                  "    ",
+                  "    pm.test(\"Response contains user info\", function () {",
+                  "        pm.expect(userInfo.sub).to.exist;",
+                  "    });",
+                  "} else {",
+                  "    console.log(\"❌ Failed to get user info:\", pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{KEYCLOAK_URL}}/realms/Customer/protocol/openid-connect/userinfo",
+              "host": [
+                "{{KEYCLOAK_URL}}"
+              ],
+              "path": [
+                "realms",
+                "Customer",
+                "protocol",
+                "openid-connect",
+                "userinfo"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token - Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"ACCESS_TOKEN\", jsonData.access_token);",
+                  "    pm.collectionVariables.set(\"REFRESH_TOKEN\", jsonData.refresh_token);",
+                  "    console.log(\"✅ Token refreshed successfully\");",
+                  "    ",
+                  "    pm.test(\"Status code is 200\", function () {",
+                  "        pm.response.to.have.status(200);",
+                  "    });",
+                  "} else {",
+                  "    console.log(\"❌ Token refresh failed:\", pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "refresh_token",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "crowdeval-customer",
+                  "type": "text"
+                },
+                {
+                  "key": "refresh_token",
+                  "value": "{{REFRESH_TOKEN}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{KEYCLOAK_URL}}/realms/Customer/protocol/openid-connect/token",
+              "host": [
+                "{{KEYCLOAK_URL}}"
+              ],
+              "path": [
+                "realms",
+                "Customer",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Developer Realm",
+      "item": [
+        {
+          "name": "Login - Developer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "password",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "crowdeval-developer",
+                  "type": "text"
+                },
+                {
+                  "key": "username",
+                  "value": "dev@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "devpassword",
+                  "type": "text"
+                },
+                {
+                  "key": "scope",
+                  "value": "openid profile email",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{KEYCLOAK_URL}}/realms/developer/protocol/openid-connect/token",
+              "host": [
+                "{{KEYCLOAK_URL}}"
+              ],
+              "path": [
+                "realms",
+                "developer",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vendor Realm",
+      "item": [
+        {
+          "name": "Login - Vendor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "password",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "crowdeval-vendor",
+                  "type": "text"
+                },
+                {
+                  "key": "username",
+                  "value": "vendor@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "vendorpassword",
+                  "type": "text"
+                },
+                {
+                  "key": "scope",
+                  "value": "openid profile email",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{KEYCLOAK_URL}}/realms/vendor/protocol/openid-connect/token",
+              "host": [
+                "{{KEYCLOAK_URL}}"
+              ],
+              "path": [
+                "realms",
+                "vendor",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Testing",
+      "item": [
+        {
+          "name": "Invalid Credentials",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "password",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "crowdeval-customer",
+                  "type": "text"
+                },
+                {
+                  "key": "username",
+                  "value": "nonexistent@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "wrongpassword",
+                  "type": "text"
+                },
+                {
+                  "key": "scope",
+                  "value": "openid profile email",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{KEYCLOAK_URL}}/realms/Customer/protocol/openid-connect/token",
+              "host": [
+                "{{KEYCLOAK_URL}}"
+              ],
+              "path": [
+                "realms",
+                "Customer",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Client ID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "password",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "invalid-client",
+                  "type": "text"
+                },
+                {
+                  "key": "username",
+                  "value": "test@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "testpassword",
+                  "type": "text"
+                },
+                {
+                  "key": "scope",
+                  "value": "openid profile email",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{KEYCLOAK_URL}}/realms/Customer/protocol/openid-connect/token",
+              "host": [
+                "{{KEYCLOAK_URL}}"
+              ],
+              "path": [
+                "realms",
+                "Customer",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Your Application API",
+      "item": [
+        {
+          "name": "Next.js Auth Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"test@example.com\",\n  \"password\": \"testpassword\",\n  \"authType\": \"customers\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
