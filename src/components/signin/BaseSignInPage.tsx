@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { TabSwitcher } from "@/components/signin/TabSwitcher";
 import { AnimatedContent } from "@/components/signin/AnimatedContent";
@@ -28,10 +28,7 @@ export const BaseSignInPage: React.FC<BaseSignInPageProps> = ({
   customRedirectUrl,
 }) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<AuthUserType>(
-    (searchParams?.get("type") as AuthUserType) || defaultUserType
-  );
+  const [activeTab, setActiveTab] = useState<AuthUserType>(defaultUserType);
   const [stage, setStage] = useState<"credentials" | "otp">("credentials");
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

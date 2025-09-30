@@ -13,6 +13,18 @@
 # testing
 /coverage
 
+
+.env
+.env.local
+.env.production
+.env.production.local
+.env.staging
+.env.staging.local
+.env.example
+.env.ipapi.example
+.env.location.example
+.env.local.example
+
 # next.js
 /.next/
 /out/
@@ -22,8 +34,9 @@
 
 # misc
 *.pem
-
+    
 *env
+.env.production.example
 
 # debug
 npm-debug.log*

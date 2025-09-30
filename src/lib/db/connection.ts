@@ -13,10 +13,10 @@ if (isServer && hasDbConfig) {
   try {
     pool = mysql.createPool({
       host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '3306'),
+      port: parseInt(process.env.DB_PORT || '3308'), // Changed default port to 3308
       user: process.env.DB_USER || 'llm_user',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'llm_evaluation',
+      password: process.env.DB_PASSWORD || 'llm_password', // Added default password
+      database: process.env.DB_NAME || 'llm_evaluation', // Added default database name
       waitForConnections: true,
       connectionLimit: 20, // Increased from 10 for better performance
       queueLimit: 0,

@@ -1,19 +1,18 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useMemo, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthHeader } from '@/components/auth/AuthHeader';
-import { TabSwitcher } from '@/components/signin/TabSwitcher';
 import { AnimatedContent } from '@/components/signin/AnimatedContent';
 import { ClientOnly } from '@/components/Ui/ClientOnly';
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 import { AuthUserType } from '@/types/auth';
 import { generateStructuredData } from '@/lib/seo';
 
-function ForgotPasswordInner() {
+// Separate component that uses useSearchParams
+function ForgotPasswordContent() {
 	const router = useRouter();
-	const searchParams = useSearchParams();
-	const [activeTab, setActiveTab] = useState<AuthUserType>((searchParams?.get('type') as AuthUserType) || 'customers');
+	const [activeTab, setActiveTab] = useState<AuthUserType>('customers');
 	const [structuredData, setStructuredData] = useState<any>(generateStructuredData(activeTab));
 
 	// Update structured data when tab changes
@@ -66,6 +65,8 @@ function ForgotPasswordInner() {
 
 export default function ForgotPasswordPage() {
 	return (
-		<ForgotPasswordInner />
+		<Suspense fallback={<div>Loading...</div>}>
+			<ForgotPasswordContent />
+		</Suspense>
 	);
 }

@@ -201,7 +201,7 @@ export default function ProjectsList({
             onClick={onCreateProject}
             className="group inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-xl focus:outline-none cursor-pointer"
           >
-            <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform duration-200" />
+            <Plus className="mr-2 h-4 w-4 " />
             New Project
           </button>
         )}

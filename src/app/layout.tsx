@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'CrowdEval',
-  metadataBase: new URL('http://localhost:3000'), // Add this line to fix the warning
+  metadataBase: new URL('http://localhost:3000'), 
 };
 
 export default function RootLayout({

@@ -1,34 +1,50 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { TwoFactorForm } from '@/components/auth/TwoFactorForm';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { AuthUserType } from '@/types/auth';
 
-export default function TwoFactorPage() {
+// Separate component that uses useSearchParams
+function TwoFactorContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { loginWithOtp } = useAuth();
 
-  const email = searchParams?.get('email');
-  const password = searchParams?.get('password');
-  const authType = searchParams?.get('authType') as AuthUserType;
+  // State for auth parameters
+  const [email, setEmail] = useState<string | null>(null);
+  const [password, setPassword] = useState<string | null>(null);
+  const [authType, setAuthType] = useState<AuthUserType | null>(null);
 
   useEffect(() => {
-    if (!email || !password || !authType) {
+    // Get parameters from URL search params
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get('email');
+    const passwordParam = params.get('password');
+    const authTypeParam = params.get('authType') as AuthUserType;
+
+    setEmail(emailParam);
+    setPassword(passwordParam);
+    setAuthType(authTypeParam);
+
+    if (!emailParam || !passwordParam || !authTypeParam) {
       router.push('/signin');
     }
-  }, [email, password, authType, router]);
+  }, [router]);
 
   const handleSubmit = async (otp: string) => {
+    if (!email || !password || !authType) {
+      setError('Missing authentication parameters');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
-      await loginWithOtp(email!, password!, authType, otp);
+      await loginWithOtp(email, password, authType, otp);
       router.push('/projects');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
@@ -54,4 +70,8 @@ export default function TwoFactorPage() {
       </div>
     </div>
   );
+}
+
+export default function TwoFactorPage() {
+  return <TwoFactorContent />;
 }

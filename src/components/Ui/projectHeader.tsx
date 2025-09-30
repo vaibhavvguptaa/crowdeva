@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import  { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { projectService } from '@/services/projectService';
 import { ProjectWithMetrics } from '@/types';
@@ -67,5 +67,30 @@ export default function ProjectHeader() {
     fetchProject();
   }, [params?.projectId]);
 
- 
+  // Render the project header UI
+  if (loading) {
+    return (
+      <div className="mb-6 animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Project not found</h1>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6">
+      <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
+      <p className="text-gray-600">
+        Created: {project.formattedDate}
+      </p>
+    </div>
+  );
 }

@@ -204,9 +204,7 @@ export const ImprovedAuthForm: React.FC<ImprovedAuthFormProps> = ({
           Email address
         </label>
         <div className="relative rounded-md shadow-sm">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Mail className="h-5 w-5 text-gray-900" />
-          </div>
+   
           <input
             {...register('email')}
             id="email"
@@ -215,7 +213,7 @@ export const ImprovedAuthForm: React.FC<ImprovedAuthFormProps> = ({
             disabled={isLoading || isSubmitting}
             aria-invalid={!!getFieldError('email')}
             aria-describedby={getFieldError('email') ? 'email-error' : undefined}
-            className={`block w-full pl-10 pr-3 py-2.5 border rounded-md focus:outline-none text-sm bg-white disabled:bg-gray-50 disabled:cursor-not-allowed transition-colors text-gray-900 ${getFieldError('email') ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : emailValidated ? 'border-green-300 focus:ring-green-500 focus:border-green-500' : isFieldTouched('email') ? 'border-gray-400 focus:ring-gray-500 focus:border-gray-500' : 'border-gray-500 focus:ring-gray-500 focus:border-gray-500'}`}
+            className={`block w-full pl-3 pr-3 py-2.5 border rounded-md focus:outline-none text-sm bg-white disabled:bg-gray-50 disabled:cursor-not-allowed transition-colors text-gray-900 placeholder-gray-500 ${getFieldError('email') ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : emailValidated ? 'border-green-300 focus:ring-green-500 focus:border-green-500' : isFieldTouched('email') ? 'border-gray-400 focus:ring-gray-500 focus:border-gray-500' : 'border-gray-500 focus:ring-gray-500 focus:border-gray-500'}`}
             placeholder="you@example.com"
           />
       
@@ -239,9 +237,7 @@ export const ImprovedAuthForm: React.FC<ImprovedAuthFormProps> = ({
           Password
         </label>
         <div className="relative rounded-md shadow-sm">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Lock className="h-5 w-5 text-gray-900" />
-          </div>
+       
           <input
             {...register('password')}
             id="password"
@@ -250,7 +246,7 @@ export const ImprovedAuthForm: React.FC<ImprovedAuthFormProps> = ({
             disabled={isLoading || isSubmitting}
             aria-invalid={!!getFieldError('password')}
             aria-describedby={getFieldError('password') ? 'password-error' : undefined}
-            className={`block w-full pl-10 pr-12 py-2.5 border rounded-md focus:outline-none text-sm bg-white disabled:bg-gray-50 disabled:cursor-not-allowed transition-colors text-gray-900 ${getFieldError('password') ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : isFieldTouched('password') ? 'border-gray-400 focus:ring-gray-500 focus:border-gray-500' : 'border-gray-500 focus:ring-gray-500 focus:border-gray-500'}`}
+            className={`block w-full pl-3 pr-3 py-2.5 border rounded-md focus:outline-none text-sm bg-white disabled:bg-gray-50 disabled:cursor-not-allowed transition-colors text-gray-900 ${getFieldError('password') ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : isFieldTouched('password') ? 'border-gray-400 focus:ring-gray-500 focus:border-gray-500' : 'border-gray-500 focus:ring-gray-500 focus:border-gray-500'}`}
             placeholder="Enter your password"
           />
           <button
