@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { BarChart3, Users, Shield, Code, Zap, CheckCircle, Package, MessageSquare, Activity } from "lucide-react";
+import { BarChart3, Users, Shield, Code, Zap, CheckCircle, Package, MessageSquare, Activity, BrainCircuit, Image, Radar } from "lucide-react";
 
 interface Feature {
   icon: React.ComponentType<{ className?: string }>;
@@ -15,19 +15,19 @@ interface FeatureListProps {
 
 const features: Record<"customers" | "developers" | "vendors", Feature[]> = {
   customers: [
-    { icon: BarChart3, title: "Unified Evaluation Dashboard", desc: "Track model performance, data quality, and human feedback in one place." },
-    { icon: Users, title: "Role-Based Workflows", desc: "Assign tasks to reviewers, data scientists, and stakeholders with clear ownership." },
-    { icon: Shield, title: "Compliance & Audit Trail", desc: "Automatic logging of decisions and annotations for SOC2 / GDPR readiness." },
+    { icon: BarChart3, title: "Unified Evaluation Dashboard", desc: "Track model performance, data quality, and human feedback in one comprehensive dashboard." },
+    { icon: BrainCircuit, title: "Advanced LLM Evaluation", desc: "Comprehensive tools to measure and improve your language models' performance with automated benchmark testing." },
+    { icon: Image, title: "Multimodal Annotation Services", desc: "Access professional annotation teams for object detection, segmentation, and classification tasks across text, images, and LiDAR data." },
   ],
   developers: [
-    { icon: Code, title: "API Integration", desc: "Simple REST & GraphQL endpoints" },
-    { icon: Zap, title: "Real-time Processing", desc: "Lightning-fast evaluation runs" },
-    { icon: CheckCircle, title: "Automated Testing", desc: "CI-ready pipelines" },
+    { icon: Code, title: "API Integration", desc: "Simple REST & GraphQL endpoints for seamless integration with your existing workflows and tools." },
+    { icon: Zap, title: "Real-time Processing", desc: "Lightning-fast evaluation runs with real-time performance monitoring and analytics." },
+    { icon: CheckCircle, title: "Automated Testing", desc: "CI-ready pipelines with comprehensive testing tools for continuous model evaluation." },
   ],
   vendors: [
-    { icon: Package, title: "Managed Submissions", desc: "Submit, version, and track deliverables with instant feedback loops." },
-  { icon: Activity, title: "Performance Insights", desc: "Monitor accuracy, latency, and acceptance trends across clients." },
-    { icon: MessageSquare, title: "Client Collaboration", desc: "Centralized messaging and clarifications to reduce turnaround time." },
+    { icon: Package, title: "Managed Submissions", desc: "Submit, version, and track deliverables with instant feedback loops and quality assurance." },
+    { icon: Activity, title: "Performance Insights", desc: "Monitor accuracy, latency, and acceptance trends across clients with detailed analytics." },
+    { icon: MessageSquare, title: "Client Collaboration", desc: "Centralized messaging and clarifications to reduce turnaround time and improve communication." },
   ],
 };
 
