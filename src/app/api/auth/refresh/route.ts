@@ -99,9 +99,12 @@ export async function POST(request: NextRequest) {
         return errorResponse;
       }
       
+      // For completely new visitors with no authType, return a different response
+      console.log('No session and no authType, returning response for new visitor');
       const errorResponse = NextResponse.json({ 
-        error: 'Missing session', 
-        message: 'Session not found. Please sign in again.' 
+        error: 'No session', 
+        message: 'No active session found. Please sign in.', 
+        code: 'NO_SESSION_NEW_VISITOR'
       }, { status: 401 });
       const corsHeaders = getCorsHeaders();
       Object.entries(corsHeaders).forEach(([key, value]) => {

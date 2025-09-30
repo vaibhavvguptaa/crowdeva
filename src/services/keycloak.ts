@@ -722,8 +722,8 @@ export class DirectGrantAuth {
         console.warn(`Token refresh failed with status ${response.status}:`, errorData);
         
         // Special case: if it's a "no session" error during initial login, this might be expected
-        if (response.status === 401 && errorData.code === 'NO_SESSION_INITIAL_LOGIN') {
-          console.log('No session found during initial login - this is expected');
+        if (response.status === 401 && (errorData.code === 'NO_SESSION_INITIAL_LOGIN' || errorData.code === 'NO_SESSION_NEW_VISITOR')) {
+          console.log('No session found during initial visit - this is expected');
           // Don't logout in this case, just return null to indicate no session
           return null;
         }

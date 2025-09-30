@@ -38,15 +38,5 @@
     "userId": "customer@example.com",
     "ipAddress": "::1",
     "userAgent": "axios/1.12.2"
-  },
-  "i36b9wnh3nndigijiq723q": {
-    "refreshToken": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJmZmY2ZGRlNS04Y2Y2LTQ2MzYtOWI2YS0wYTk2YWJlOTJmYWEifQ.eyJleHAiOjE3NTkyMTU3MDksImlhdCI6MTc1OTIxMzkwOSwianRpIjoiY2ZjMTZlZWEtMGQ5NS00NTdjLWFkODYtYTRiNTc2YTM0NzVhIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9DdXN0b21lciIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC9yZWFsbXMvQ3VzdG9tZXIiLCJzdWIiOiJhYjkzODM5Mi01OTIyLTRhZTEtODcwNS0xODk0MzZkZTAxYmEiLCJ0eXAiOiJSZWZyZXNoIiwiYXpwIjoiY3VzdG9tZXItd2ViIiwic2lkIjoiOTlkMWE4ZDctOTMwMi00NzgxLWEyNWYtODZmYzRjODUzMDM2Iiwic2NvcGUiOiJ3ZWItb3JpZ2lucyBlbWFpbCBhY3IgcHJvZmlsZSByb2xlcyBiYXNpYyJ9.tzYxIQ0atyUqIAdwqB1ZRgF0a2SgjGOnMvsPOw0FouxMq7xBDC-engAM5j0MqqY-CWt9BeAld0cpj7bc7hUFWQ",
-    "authType": "customers",
-    "createdAt": 1759212759347,
-    "lastRotatedAt": 1759213910039,
-    "loginAttempts": 0,
-    "userId": "ab938392-5922-4ae1-8705-189436de01ba",
-    "ipAddress": "::1",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
   }
 }

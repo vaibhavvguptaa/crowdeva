@@ -106,48 +106,101 @@ export function AuthProvider({ children }: AuthProviderProps) {
           error: null,
         });
       } else {
-        console.log('Quick check failed, trying refresh');
+        console.log('Quick check failed, checking for existing session');
         console.log('Current auth state:', { hasDirectGrantAuth: !!DirectGrantAuth, hasOptimizedAuth: !!OptimizedAuth });
-        // Even if quick check fails, let's double-check by trying to refresh
-        console.log('Loading auth services for refresh');
-        // Try to get authType from localStorage first
-        let authType = typeof window !== 'undefined' 
-          ? localStorage.getItem('authType') as AuthUserType
-          : null;
-        console.log('Auth type from localStorage:', authType);
         
-        // If not in localStorage, try to get it from cookies
-        if (!authType && typeof document !== 'undefined') {
+        // Check if there's any indication of an existing session before trying to refresh
+        let hasSessionIndication = false;
+        
+        // Check localStorage for authType
+        if (typeof window !== 'undefined') {
+          const storedAuthType = localStorage.getItem('authType');
+          if (storedAuthType) {
+            hasSessionIndication = true;
+            console.log('Found authType in localStorage, indicating possible session');
+          }
+        }
+        
+        // Check cookies for authType or sid
+        if (!hasSessionIndication && typeof document !== 'undefined') {
           const cookies = document.cookie.split(';');
           for (const cookie of cookies) {
             const [name, value] = cookie.trim().split('=');
-            if (name === 'authType') {
-              authType = decodeURIComponent(value) as AuthUserType;
+            if (name === 'authType' || name === 'sid') {
+              hasSessionIndication = true;
+              console.log('Found session cookie:', name);
               break;
             }
           }
-          console.log('Auth type from cookies:', authType);
         }
         
-        // If still no authType, try to infer it or default to customers
-        if (!authType) {
-          // Try to get user info to infer authType
-          const userInfo = DirectGrantAuth.getUserInfo();
-          authType = (userInfo && userInfo.authType) || 'customers';
-          console.log('Inferred auth type:', authType);
-        }
-        
-        console.log('Final auth type for refresh:', authType);
-        
-        if (authType) {
-          try {
-            console.log('Attempting to refresh with authType:', authType);
-            const refreshResult = await DirectGrantAuth.refresh(authType);
-            console.log('Refresh result:', refreshResult);
+        // Only try to refresh if there's some indication of an existing session
+        if (hasSessionIndication) {
+          console.log('Session indication found, attempting refresh');
+          // Load auth services if not already loaded
+          await loadAuthServices();
+          
+          // Try to get authType from localStorage first
+          let authType = typeof window !== 'undefined' 
+            ? localStorage.getItem('authType') as AuthUserType
+            : null;
+          console.log('Auth type from localStorage:', authType);
+          
+          // If not in localStorage, try to get it from cookies
+          if (!authType && typeof document !== 'undefined') {
+            const cookies = document.cookie.split(';');
+            for (const cookie of cookies) {
+              const [name, value] = cookie.trim().split('=');
+              if (name === 'authType') {
+                authType = decodeURIComponent(value) as AuthUserType;
+                break;
+              }
+            }
+            console.log('Auth type from cookies:', authType);
+          }
+          
+          // If still no authType, try to infer it or default to customers
+          if (!authType) {
+            // Try to get user info to infer authType
             const userInfo = DirectGrantAuth.getUserInfo();
-            console.log('User info after refresh:', userInfo);
+            authType = (userInfo && userInfo.authType) || 'customers';
+            console.log('Inferred auth type:', authType);
+          }
+          
+          console.log('Final auth type for refresh:', authType);
+          
+          if (authType) {
+            try {
+              console.log('Attempting to refresh with authType:', authType);
+              const refreshResult = await DirectGrantAuth.refresh(authType);
+              console.log('Refresh result:', refreshResult);
+              const userInfo = DirectGrantAuth.getUserInfo();
+              console.log('User info after refresh:', userInfo);
+              if (userInfo) {
+                console.log('Updating auth state with user info');
+                updateAuthState({
+                  isAuthenticated: true,
+                  user: userInfo,
+                  loading: false,
+                  error: null,
+                });
+                return;
+              } else {
+                console.log('No user info after refresh');
+              }
+            } catch (e) {
+              // Refresh failed, continue with unauthenticated state
+              console.warn('Token refresh failed:', e);
+            }
+          }
+          
+          // Try one more time with a default authType before giving up
+          try {
+            console.log('Trying fallback refresh with customers authType');
+            await DirectGrantAuth.refresh('customers');
+            const userInfo = DirectGrantAuth.getUserInfo();
             if (userInfo) {
-              console.log('Updating auth state with user info');
+              console.log('Fallback refresh successful');
               updateAuthState({
                 isAuthenticated: true,
                 user: userInfo,
@@ -156,39 +209,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
               });
               return;
             } else {
-              console.log('No user info after refresh');
+              console.log('Fallback refresh failed - no user info');
             }
           } catch (e) {
-            // Refresh failed, continue with unauthenticated state
-            console.warn('Token refresh failed:', e);
+            // Ignore error and continue with unauthenticated state
+            console.warn('Fallback refresh with customers authType failed:', e);
           }
-        }
-        
-        // Try one more time with a default authType before giving up
-        try {
-          console.log('Trying fallback refresh with customers authType');
-          await DirectGrantAuth.refresh('customers');
-          const userInfo = DirectGrantAuth.getUserInfo();
-          if (userInfo) {
-            console.log('Fallback refresh successful');
-            updateAuthState({
-              isAuthenticated: true,
-              user: userInfo,
-              loading: false,
-              error: null,
-            });
-            return;
-          } else {
-            console.log('Fallback refresh failed - no user info');
-          }
-        } catch (e) {
-          // Ignore error and continue with unauthenticated state
-          console.warn('Fallback refresh with customers authType failed:', e);
+        } else {
+          console.log('No session indication found, skipping refresh for initial visit');
         }
         
         // If we get here, it means there's no active session, which is normal for initial visits
         // Don't set error state, just set loading to false
-        console.log('No active session found - this may be normal for initial visit');
+        console.log('Setting auth state to unauthenticated - no active session');
         
         console.log('Setting auth state to unauthenticated - no active session');
         updateAuthState({
