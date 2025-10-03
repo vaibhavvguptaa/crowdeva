@@ -25,6 +25,8 @@
 .env.location.example
 .env.local.example
 
+DEPLOYMENT-STEPS.md
+MANUAL-DEPLOYMENT-INSTRUCTIONS.md
 # next.js
 /.next/
 /out/

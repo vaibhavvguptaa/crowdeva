@@ -28,12 +28,34 @@ export class ProjectServerService {
 
   async getProjects(userId?: string): Promise<ProjectWithMetrics[]> {
     const cacheKey = `projects-${userId || 'all'}`;
-    return this.getCachedData(cacheKey, () => getProjects(userId));
+    const projects = await this.getCachedData(cacheKey, () => getProjects(userId));
+    
+    // Add formattedDate to each project
+    return projects.map(project => ({
+      ...project,
+      formattedDate: new Date(project.createdAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+      })
+    }));
   }
 
   async getProject(id: string): Promise<ProjectWithMetrics | null> {
     const cacheKey = `project-${id}`;
-    return this.getCachedData(cacheKey, () => getProjectById(id));
+    const project = await this.getCachedData(cacheKey, () => getProjectById(id));
+    
+    if (!project) return null;
+    
+    // Add formattedDate to the project
+    return {
+      ...project,
+      formattedDate: new Date(project.createdAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+      })
+    };
   }
 
   async createProject(projectData: any): Promise<ProjectWithMetrics> {

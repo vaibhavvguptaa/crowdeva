@@ -39,7 +39,7 @@ const ProjectRowComponent: React.FC<ProjectRowProps> = ({
   }, []);
 
   // Use the backend-provided formattedDate directly
-  const formattedDate = project.formattedDate || 'Invalid Date';
+  const formattedDate = project.formattedDate || 'Unknown Date';
 
   return (
     <div

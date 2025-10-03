@@ -126,7 +126,7 @@ const DeveloperProjectsPage: React.FC = () => {
           tags: projectData.tags || ['developer', 'api'],
           priority: projectData.priority || 'medium',
           deadline: projectData.deadline,
-          formattedDate: 'Invalid Date', // Will be set by backend
+          // Remove the placeholder formattedDate - it will be set by the backend
         };
         setProjects((prev) => [newProject, ...prev]);
         setShowCreateModal(false);
@@ -181,7 +181,7 @@ const DeveloperProjectsPage: React.FC = () => {
             tags: ['developer', 'api', 'imported'],
             priority: project.priority || 'medium',
             deadline: project.deadline,
-            formattedDate: 'Invalid Date', // Will be set by backend
+            // Remove the placeholder formattedDate - it will be set by the backend
           })
         );
         

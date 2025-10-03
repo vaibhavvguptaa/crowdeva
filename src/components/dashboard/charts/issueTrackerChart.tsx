@@ -9,22 +9,6 @@ const DoughnutChart = dynamic(() => import('react-chartjs-2').then(mod => mod.Do
   loading: () => <div className="h-64 flex items-center justify-center text-gray-400">Loading chart...</div>
 });
 
-// Import chart.js components only on client side
-useEffect(() => {
-  const initChart = async () => {
-    const ChartJS = await import('chart.js');
-    const ArcElement = await import('chart.js').then(mod => mod.ArcElement);
-    const Tooltip = await import('chart.js').then(mod => mod.Tooltip);
-    const Legend = await import('chart.js').then(mod => mod.Legend);
-    
-    ChartJS.Chart.register(ArcElement, Tooltip, Legend);
-  };
-  
-  if (typeof window !== 'undefined') {
-    initChart();
-  }
-}, []);
-
 interface IssueData {
   minor: number;
   major: number;
@@ -48,6 +32,22 @@ export default memo<IssueTrackerChartProps>(function IssueTrackerChart({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+
+  // Initialize Chart.js components only on client side
+  useEffect(() => {
+    const initChart = async () => {
+      const ChartJS = await import('chart.js');
+      const ArcElement = await import('chart.js').then(mod => mod.ArcElement);
+      const Tooltip = await import('chart.js').then(mod => mod.Tooltip);
+      const Legend = await import('chart.js').then(mod => mod.Legend);
+      
+      ChartJS.Chart.register(ArcElement, Tooltip, Legend);
+    };
+    
+    if (typeof window !== 'undefined') {
+      initChart();
+    }
+  }, []);
 
   useEffect(() => {
     setIsClient(true);

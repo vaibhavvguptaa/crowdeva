@@ -6,23 +6,50 @@ class ProjectService {
     return typeof window !== 'undefined';
   }
 
-  // Client-side API call helper
+  // Client-side API call helper with better error handling
   private async apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const response = await fetch(endpoint, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
-      throw new Error(errorMessage);
+    try {
+      const response = await fetch(endpoint, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        credentials: 'include', // Include cookies in requests
+        ...options,
+      });
+      
+      if (!response.ok) {
+        // Try to parse error response, fallback to generic message
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (parseError) {
+          // If we can't parse the error response, use the status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        
+        // Handle authentication errors specifically
+        if (response.status === 401) {
+          errorMessage = 'Authentication required. Please sign in to continue.';
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      return response.json();
+    } catch (error) {
+      // Re-throw network errors or other fetch issues
+      if (error instanceof Error) {
+        // Provide more specific error messages for common issues
+        if (error.message.includes('fetch')) {
+          throw new Error('Network error. Please check your connection and try again.');
+        }
+        throw error;
+      }
+      // Handle non-Error objects
+      throw new Error('An unknown error occurred');
     }
-    
-    return response.json();
   }
 
   async getProjects(userId?: string): Promise<ProjectWithMetrics[]> {
@@ -54,10 +81,15 @@ class ProjectService {
     // await new Promise(resolve => setTimeout(resolve, 400));
     
     // Use API calls on client side
-    return this.apiCall<ProjectWithMetrics>('/api/projects', {
-      method: 'POST',
-      body: JSON.stringify(projectData),
-    });
+    try {
+      return await this.apiCall<ProjectWithMetrics>('/api/projects', {
+        method: 'POST',
+        body: JSON.stringify(projectData),
+      });
+    } catch (error) {
+      console.error('Error creating project:', error);
+      throw error;
+    }
   }
 
   async updateProject(id: string, updates: Partial<ProjectWithMetrics>): Promise<ProjectWithMetrics | null> {

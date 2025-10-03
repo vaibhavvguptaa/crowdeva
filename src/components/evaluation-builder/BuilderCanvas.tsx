@@ -86,7 +86,7 @@ const componentIconMap: Record<string, React.ElementType> = {
   DATETIME_INPUT: Calendar,
   TEXT_DISPLAY: FileTextIcon,
   RICH_TEXT_EDITOR: PenTool,
-  CODE_EDITOR: CodeIcon,  // New code editor icon
+  CODE_EDITOR: CodeIcon,  
   FILE_UPLOAD: Upload,
   JSON_VIEWER: FileJson,
   LOOM_VIDEO: Video,

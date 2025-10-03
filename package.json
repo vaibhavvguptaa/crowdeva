@@ -38,6 +38,7 @@
     "env:summary": "node scripts/env-summary.js",
     "kc:configure-otp": "node scripts/configure-keycloak-otp.js",
     "kc:init": "cd scripts && npm install && node init-keycloak.js",
+    "kc:init-local": "cd scripts && node init-keycloak-local.js",
     "kc:create-admin": "cd scripts && node create-permanent-admin.js",
     "health": "node scripts/health-check.js",
     "db:init": "node scripts/init-db.js",
@@ -85,6 +86,7 @@
     "tailwind-merge": "^3.3.1",
     "tough-cookie": "^6.0.0",
     "ts-node": "^10.9.2",
+    "uuid": "^13.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

@@ -52,7 +52,7 @@ export const useLocationAwareAuth = () => {
 
       // Add timeout to prevent hanging requests
       controller = new AbortController();
-      timeoutId = setTimeout(() => controller!.abort(), 10000); // Increased to 10 seconds
+      timeoutId = setTimeout(() => controller!.abort(), 5000); // Reduced from 10 seconds
 
       const response = await fetch(`/api/auth/location-aware?${params}`, {
         signal: controller.signal,
@@ -129,7 +129,6 @@ export const useLocationAwareAuth = () => {
       // First, get a CSRF token
       const csrfResponse = await fetch('/api/auth/csrf-token', {
         credentials: 'include'
-        // Add mode and cache options to ensure proper CORS handling
       });
       
       if (!csrfResponse.ok) {
@@ -140,8 +139,8 @@ export const useLocationAwareAuth = () => {
       
       // Add timeout to prevent hanging requests
       controller = new AbortController();
-      // Increase timeout to 45 seconds to accommodate slower location checks
-      timeoutId = setTimeout(() => controller!.abort(), 45000);
+      // Reduce timeout to 15 seconds for better responsiveness
+      timeoutId = setTimeout(() => controller!.abort(), 15000);
 
       const response = await fetch('/api/auth/location-aware', {
         method: 'POST',
@@ -150,7 +149,7 @@ export const useLocationAwareAuth = () => {
           'X-CSRF-Token': csrfToken
         },
         body: JSON.stringify({
-          username, // Changed from email to username to match API expectations
+          username,
           password,
           authType,
           skipLocationCheck
@@ -212,7 +211,6 @@ export const useLocationAwareAuth = () => {
       }
 
       // Successful authentication
-      // The response now includes a success field, so we check that
       if (data.success) {
         const locationData: LocationInfo = {
           // For now, we're not getting location info from the auth response
@@ -223,14 +221,11 @@ export const useLocationAwareAuth = () => {
         setLocationInfo(locationData);
         setLocationBlocked(false);
 
-        // Remove manual localStorage manipulation since we're using HTTP-only cookies
-        // The AuthContext will automatically pick up the cookie values on refresh
-        
         // Trigger a refresh of the auth state
         await refreshAuth();
         
-        // Add a small delay to ensure state is properly updated before returning success
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Reduced delay for better performance
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         return { success: true };
       } else {

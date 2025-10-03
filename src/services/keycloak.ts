@@ -13,26 +13,18 @@ import {
 import { AuthErrorHandler } from '@/lib/authErrorHandler';
 
 // Create keycloak instance but don't initialize it for SSO
-// TODO (Security): Remove storage of refresh token in localStorage; use httpOnly cookie session.
-console.log('Initializing keycloak instance');
 let keycloak: Keycloak | null = null;
 try {
   const config = getKeycloakConfig();
-  console.log('Keycloak config:', config);
   // Only initialize keycloak if all required config values are present
   if (config && config.url && config.realm && config.clientId) {
-    console.log('Creating keycloak instance with config');
     keycloak = new Keycloak({
       url: config.url,
       realm: config.realm,
       clientId: config.clientId
     });
-    console.log('Keycloak instance created successfully');
-  } else {
-    console.log('Keycloak config is incomplete');
   }
 } catch (error) {
-  console.warn('Failed to initialize Keycloak instance:', error);
   // Keycloak will remain null, which is handled in the application
 }
 
@@ -47,7 +39,6 @@ export class DirectGrantAuth {
   private static readonly MAX_REFRESH_ATTEMPTS = 3;
 
   static {
-    console.log('DirectGrantAuth static block initialized');
     // Only load tokens if we're in a browser environment
     if (typeof window !== 'undefined') {
       this.loadTokensFromStorage();
@@ -55,41 +46,25 @@ export class DirectGrantAuth {
   }
 
   private static getAuthTypeFromStorage(): AuthUserType | undefined {
-    console.log('Getting authType from storage');
     if (typeof window !== 'undefined') {
-      console.log('Window object is available');
       // Try to get authType from localStorage first (for backward compatibility)
       let authType = localStorage.getItem('authType') as AuthUserType | undefined;
-      console.log('AuthType from localStorage:', authType);
-      
-      // If not in localStorage, we can't access HttpOnly cookies from JavaScript
-      // In this case, we'll need to determine the authType from other means
-      // For now, we'll return what we have (or undefined if not found)
-      
       return authType;
-    } else {
-      console.log('Window object is not available (SSR)');
     }
-    console.log('Returning undefined authType');
     return undefined;
   }
 
   private static async fetchAndSetUserInfo(): Promise<void> {
-    console.log('fetchAndSetUserInfo called with accessToken:', this.accessToken ? `${this.accessToken.substring(0, 20)}...` : 'null');
     if (!this.accessToken) {
-      console.log('No access token, setting userInfo to null');
       this.userInfo = null;
       return;
     }
 
     let authType = this.getAuthTypeFromStorage();
-    console.log('Auth type from storage:', authType);
     if (!authType) {
-      console.log('No auth type from storage, inferring from token');
       // If we can't get authType from storage, try to determine it from the token payload
       try {
         const tokenPayload = this.parseTokenPayload(this.accessToken);
-        console.log('Token payload:', tokenPayload);
         // Try to infer authType from the issuer or audience
         if (tokenPayload && tokenPayload.iss) {
           const issuer = tokenPayload.iss.toLowerCase();
@@ -111,31 +86,22 @@ export class DirectGrantAuth {
           }
         } else {
           // Default to customers if we can't determine
-          console.warn('No auth type found in storage and unable to infer from token, defaulting to customers');
           authType = 'customers';
         }
-        console.log('Inferred auth type:', authType);
       } catch (error) {
-        console.warn('Failed to infer auth type from token, defaulting to customers:', error);
         authType = 'customers';
       }
     }
 
     try {
       const config = getKeycloakConfig(authType);
-      console.log('Keycloak config for user info:', config);
       if (!config || !config.url || !config.realm) {
-        console.warn('Invalid Keycloak configuration, falling back to token payload');
         const tokenPayload = this.parseTokenPayload(this.accessToken);
         this.userInfo = this.createUserFromPayload(tokenPayload, authType);
-        console.log('Created user info from token payload:', this.userInfo);
         return;
       }
       
       const userInfoUrl = `${config.url}/realms/${config.realm}/protocol/openid-connect/userinfo`;
-      
-      // Log the URL for debugging (remove in production)
-      console.log('Fetching user info from:', userInfoUrl);
 
       const response = await fetch(userInfoUrl, {
         headers: {
@@ -143,44 +109,31 @@ export class DirectGrantAuth {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        // Add timeout and other fetch options
-        signal: AbortSignal.timeout(10000), // 10 second timeout
+        // Reduced timeout
+        signal: AbortSignal.timeout(5000),
         mode: 'cors',
         credentials: 'include'
       });
 
       if (!response.ok) {
-        console.warn(`Failed to fetch user info (${response.status}: ${response.statusText}), falling back to token payload.`);
         const tokenPayload = this.parseTokenPayload(this.accessToken);
         this.userInfo = this.createUserFromPayload(tokenPayload, authType);
-        console.log('Created user info from token payload (fallback):', this.userInfo);
         return;
       }
 
       const fullUserInfo = await response.json().catch(() => ({}));
-      console.log('Full user info from Keycloak:', fullUserInfo);
       const tokenPayload = this.parseTokenPayload(this.accessToken);
       this.userInfo = this.createUserFromPayload({ ...tokenPayload, ...fullUserInfo }, authType);
-      console.log('Created user info from combined data:', this.userInfo);
 
     } catch (error) {
       const config = getKeycloakConfig(authType);
       
       // Check if this is a network connectivity error
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.warn('Keycloak server appears to be unreachable, falling back to token payload');
         logSecurityEvent('Keycloak server unreachable - using token fallback', {
           keycloakUrl: config && config.url,
           realm: config && config.realm,
           error: error.message
-        });
-      } else {
-        logError('Error fetching user info', error instanceof Error ? error : new Error(String(error)), {
-          authType,
-          hasToken: !!this.accessToken,
-          userInfoUrl: config && config.url && config.realm 
-            ? `${config.url}/realms/${config.realm}/protocol/openid-connect/userinfo`
-            : 'Invalid config'
         });
       }
       
@@ -188,28 +141,22 @@ export class DirectGrantAuth {
       try {
         const tokenPayload = this.parseTokenPayload(this.accessToken);
         this.userInfo = this.createUserFromPayload(tokenPayload, authType);
-        console.log('Successfully created user info from token payload');
       } catch (tokenError) {
-        logError('Failed to parse token payload', tokenError instanceof Error ? tokenError : new Error(String(tokenError)));
         this.userInfo = null;
       }
     }
   }
 
   private static parseTokenPayload(token: string): any {
-    console.log('parseTokenPayload called with token:', token ? `${token.substring(0, 20)}...` : 'null');
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log('Parsed token payload:', payload);
       return payload;
     } catch (error) {
-      console.error('Failed to parse token payload:', error);
       return {};
     }
   }
 
   private static createUserFromPayload(payload: any, authType: AuthUserType): AuthUser {
-    console.log('createUserFromPayload called with:', { payload, authType });
     // Ensure payload is valid
     if (!payload) {
       payload = {};
@@ -232,52 +179,34 @@ export class DirectGrantAuth {
       firstName: payload.firstName || payload.given_name || null,
       lastName: payload.lastName || payload.family_name || null,
     };
-    console.log('Created user:', user);
     return user;
   }
 
   private static async loadTokensFromStorage(): Promise<void> {
-    console.log('=== LOADING TOKENS FROM STORAGE ===');
-    
     if (typeof window !== 'undefined') {
-      console.log('Window object is available, loading tokens');
-      // In the session-based approach, we can't access HttpOnly cookies from JavaScript
-      // Instead, we need to check if we have a valid session by making a request to the server
+      // Try to get authType first
+      let authType = this.getAuthTypeFromStorage();
+      
+      // If we don't have authType, try to infer it or default to customers
+      if (!authType) {
+        authType = 'customers'; // Default to customers
+      }
+      
+      // Try to refresh the token to validate the session
       try {
-        // Try to get authType first
-        let authType = this.getAuthTypeFromStorage();
-        console.log('Auth type from storage:', authType);
-        
-        // If we don't have authType, try to infer it or default to customers
-        if (!authType) {
-          authType = 'customers'; // Default to customers
-          console.log('Defaulting auth type to customers');
-        }
-        
-        // Try to refresh the token to validate the session
-        console.log('Attempting to refresh token with authType:', authType);
-        const tokens = await this.refresh(authType).catch((error) => {
-          console.warn('Token refresh failed:', error);
-          return null;
-        });
-        console.log('Tokens from refresh during load:', tokens);
+        const tokens = await this.refresh(authType).catch(() => null);
         if (tokens) {
-          console.log('Token refresh successful during load');
           this.accessToken = tokens.access_token;
           await this.fetchAndSetUserInfo().catch(() => {
-            console.warn('Failed to fetch user info after token refresh');
+            // Ignore error
           });
           return;
-        } else {
-          console.log('Token refresh failed during load');
         }
       } catch (error) {
-        console.warn('Failed to refresh token during load:', error);
+        // Ignore error
       }
       
       // If refresh fails, this is normal for initial visits (no session yet)
-      // Don't try to get token from localStorage as we're using HttpOnly cookies now
-      console.log('Token refresh failed during load - this is normal for initial visits');
       this.accessToken = null;
       
       // refresh token intentionally not reloaded from storage anymore
@@ -286,55 +215,36 @@ export class DirectGrantAuth {
       
       // Only fetch user info if we have a valid token and we're not in SSR
       if (this.accessToken && this.isTokenValid(this.accessToken)) {
-        console.log('Access token is valid, fetching user info');
         try {
           await this.fetchAndSetUserInfo();
         } catch (error) {
           // If fetching user info fails, clear invalid tokens
-          console.warn('Failed to load user info, clearing tokens:', error);
           this.logout();
         }
       } else if (this.accessToken) {
         // Token exists but is invalid, clear it
-        console.warn('Found invalid token in storage, clearing...');
         this.logout();
-      } else {
-        console.log('No access token found - this is normal for initial visits');
       }
-    } else {
-      console.log('Window object is not available (SSR), skipping token loading');
     }
-    console.log('=== FINISHED LOADING TOKENS FROM STORAGE ===');
   }
 
   private static isTokenValid(token: string): boolean {
-    console.log('isTokenValid called with token:', token ? `${token.substring(0, 20)}...` : 'null');
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const isValid = payload.exp * 1000 > Date.now();
-      console.log('Token is valid:', isValid, 'Expiration:', payload.exp, 'Current time:', Date.now());
       return isValid;
     } catch (error) {
-      console.log('Failed to validate token:', error);
       return false;
     }
   }
 
   static async login(username: string, password: string, authType: AuthUserType, otp?: string): Promise<TokenResponse> {
-    console.log('=== LOGIN ATTEMPT ===');
-    console.log('Username:', username);
-    console.log('Auth type:', authType);
-    console.log('Has OTP:', !!otp);
-    
     const config = getKeycloakConfig(authType);
-    console.log('Keycloak config:', config);
     if (!config || !config.url || !config.realm || !config.clientId) {
-      console.log('Invalid Keycloak configuration');
       throw new AuthenticationError('Invalid Keycloak configuration');
     }
     
     const tokenUrl = `${config.url}/realms/${config.realm}/protocol/openid-connect/token`;
-    console.log('Token URL:', tokenUrl);
 
     const formData = new URLSearchParams();
     formData.append('grant_type', 'password');
@@ -346,11 +256,9 @@ export class DirectGrantAuth {
     if (otp) formData.append('totp', otp);
 
     try {
-      console.log('Making request to Keycloak token endpoint:', tokenUrl);
-
       // Add AbortSignal for better timeout control
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduced timeout
 
       const response = await fetch(tokenUrl, {
         method: 'POST',
@@ -363,13 +271,9 @@ export class DirectGrantAuth {
 
       clearTimeout(timeoutId); // Clear timeout if request completes
 
-      console.log('Keycloak response status:', response.status);
-
       const responseData = await response.json().catch(() => ({}));
-      console.log('Keycloak response data:', responseData);
 
       if (!response.ok) {
-        console.log('Keycloak response not OK');
         const authError = responseData as AuthError;
         const human = this.getHumanReadableError(authError.error, authError.error_description);
         // Detect TOTP requirement (Keycloak often returns invalid_grant with hint)
@@ -403,7 +307,6 @@ export class DirectGrantAuth {
       }
 
       const tokens: TokenResponse = responseData;
-      console.log('Login successful, received tokens');
       
       // Store tokens only in memory, not in localStorage when using session-based approach
       this.accessToken = tokens.access_token || null;
@@ -412,12 +315,11 @@ export class DirectGrantAuth {
       
       // Fetch and store user info
       await this.fetchAndSetUserInfo().catch(() => {
-        console.warn('Failed to fetch user info after login');
+        // Ignore error
       });
 
       // Log successful authentication
       const userInfo = this.getUserInfo();
-      console.log('User info after login:', userInfo);
       if (userInfo) {
         logAuthSuccess(userInfo.sub, authType, {
           email: username,
@@ -427,87 +329,38 @@ export class DirectGrantAuth {
       }
 
       // Set the tokens as cookies via the API route
-      console.log('Setting token cookie with refresh token:', !!tokens.refresh_token);
-      if (tokens.refresh_token) {
-        console.log('Refresh token length:', tokens.refresh_token.length);
-      } else {
-        console.log('No refresh token in response');
-      }
       // Extract user ID from the access token payload
       let userId: string | undefined;
       try {
         const payload = JSON.parse(atob(tokens.access_token.split('.')[1]));
         userId = payload.sub;
-        console.log('User ID extracted from token:', userId);
       } catch (e) {
-        console.warn('Failed to extract user ID from token:', e);
+        // Ignore error
       }
-      console.log('Setting token cookie with tokens:', {
-        hasAccessToken: !!tokens.access_token,
-        hasRefreshToken: !!tokens.refresh_token,
-        refreshTokenLength: tokens.refresh_token ? tokens.refresh_token.length : 0,
-        authType,
-        userId
-      });
-      console.log('Calling setTokenCookie with parameters:', {
-        hasAccessToken: !!tokens.access_token,
-        hasRefreshToken: !!tokens.refresh_token,
-        authType,
-        userId
-      });
-      await this.setTokenCookie(tokens.access_token, tokens.refresh_token, authType, userId).catch((error) => {
-        console.warn('Failed to set token cookie:', error);
+      
+      await this.setTokenCookie(tokens.access_token, tokens.refresh_token, authType, userId).catch(() => {
+        // Ignore error
       });
       
       // Store authType in localStorage as well for client-side access
       if (typeof window !== 'undefined' && authType) {
         try {
           localStorage.setItem('authType', authType);
-          console.log('Stored authType in localStorage:', authType);
         } catch (e) {
-          console.warn('Failed to store authType in localStorage:', e);
+          // Ignore error
         }
       }
       
-      console.log('Returning tokens from login function');
       return tokens;
     } catch (error) {
-      console.error('Login request failed:', error);
-      console.error('Keycloak URL:', tokenUrl);
-      
-      // More detailed error handling
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        console.error('Network error when connecting to Keycloak. Please check:');
-        console.error('1. Keycloak server is running and accessible at:', config.url);
-        console.error('2. NEXT_PUBLIC_KEYCLOAK_URL is correctly configured in .env.local');
-        console.error('3. Network connectivity between the application and Keycloak');
-        console.error('4. Firewall or antivirus is not blocking the connection');
-        console.error('5. CORS is properly configured in Keycloak for client:', config.clientId);
-        
-        // Check if we can reach the server at all
-        try {
-          if (config.url) {
-            const serverResponse = await fetch(config.url, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
-            if (!serverResponse.ok) {
-              console.error('Keycloak server responded with status:', serverResponse.status);
-            }
-          }
-        } catch (serverError) {
-          console.error('Cannot reach Keycloak server at all. Error:', serverError instanceof Error ? serverError.message : String(serverError));
-        }
-      }
-      
       if (error instanceof AuthenticationError) {
-        console.log('Throwing AuthenticationError');
         throw error;
       }
-      console.log('Throwing generic AuthenticationError');
       throw new AuthenticationError('Network error occurred during login. Please try again.');
     }
   }
 
   private static getHumanReadableError(error: string, description?: string): string {
-    console.log('getHumanReadableError called with:', { error, description });
     const errorMap: Record<string, string> = {
       'invalid_grant': 'Invalid username or password. Please check your credentials and try again.',
       'invalid_client': 'Authentication service configuration error. Please contact support.',
@@ -552,54 +405,28 @@ export class DirectGrantAuth {
     }
 
     const result = errorMap[error] || description || 'Authentication failed. Please try again.';
-    console.log('Returning human readable error:', result);
     return result;
   }
 
   private static async setTokenCookie(token: string, refreshToken?: string, authType?: AuthUserType, userId?: string): Promise<void> {
-    console.log('=== SETTING TOKEN COOKIE ===');
-    console.log('Has refresh token:', !!refreshToken);
-    console.log('Auth type:', authType);
-    
     // Skip setting cookies in server environments as they're handled differently
     if (typeof window === 'undefined') {
-      console.log('Skipping cookie setting in server environment - handled by API route');
       return;
     }
     
     try {
-      console.log('setTokenCookie called with parameters:', { 
-        hasToken: !!token, 
-        hasRefreshToken: !!refreshToken, 
-        refreshTokenLength: refreshToken ? refreshToken.length : 0, 
-        authType, 
-        userId 
-      });
-      
       // Get CSRF token first
-      console.log('Fetching CSRF token');
       const csrfResponse = await fetch('/api/auth/csrf-token', { 
         credentials: 'include',
         mode: 'cors'
       });
       if (!csrfResponse.ok) {
-        console.warn('Failed to get CSRF token for setting session cookie');
         return;
       }
       const { csrfToken } = await csrfResponse.json().catch(() => ({ csrfToken: undefined }));
-      console.log('CSRF token received:', csrfToken);
 
       // Use absolute URL to avoid "Failed to parse URL" error
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-      console.log('Making request to set-session endpoint');
-      
-      // Log the data being sent
-      console.log('Sending data to set-session:', {
-        hasToken: !!token,
-        hasRefreshToken: !!refreshToken,
-        refreshTokenLength: refreshToken ? refreshToken.length : 0,
-        authType
-      });
       
       const response = await fetch(`${baseUrl}/api/auth/set-session`, {
         method: 'POST',
@@ -617,70 +444,45 @@ export class DirectGrantAuth {
         cache: 'no-cache'
       });
 
-      console.log('Set-session response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
       if (!response.ok) {
-        console.log('Set-session response not OK');
         const errorData = await response.json().catch(() => ({}));
-        console.error('Failed to set session:', errorData);
         throw new Error(errorData.error || 'Failed to set session');
       }
-      
-      console.log('Session set successfully');
-      
-      // Check if the response includes Set-Cookie header
-      const setCookieHeader = response.headers.get('Set-Cookie');
-      console.log('Set-Cookie header in response:', setCookieHeader);
       
       // Store authType in localStorage as a fallback
       if (authType) {
         try {
           localStorage.setItem('authType', authType);
         } catch (e) {
-          console.warn('Failed to store authType in localStorage:', e);
+          // Ignore error
         }
       }
     } catch (error) {
-      console.warn('Failed to set session cookie:', error);
-      
+      // Ignore error
     }
   }
 
   static async refresh(authType?: AuthUserType): Promise<TokenResponse | null> {
-    console.log('Refresh called with authType:', authType);
-    
     // Prevent multiple concurrent refresh attempts
     if (this.refreshPromise) {
-      console.log('Refresh already in progress, returning existing promise');
       return this.refreshPromise;
     }
 
     const currentAuthType = authType || this.getAuthTypeFromStorage();
-    console.log('Current authType:', currentAuthType);
     
     if (!currentAuthType) {
-      console.warn('No auth type available for refresh');
       // Don't logout immediately, just return null to indicate no session
       return null;
     }
 
-    console.log('Calling performRefresh with authType:', currentAuthType);
-    this.refreshPromise = this.performRefresh(currentAuthType).catch(error => {
-      console.error('Refresh promise failed:', error);
-      return null;
-    });
+    this.refreshPromise = this.performRefresh(currentAuthType).catch(() => null);
     const result = await this.refreshPromise;
     this.refreshPromise = null;
     
-    console.log('Refresh result:', result);
-    
     // If refresh failed, try to get authType from user info as a fallback
     if (!result) {
-      console.log('Refresh failed, trying to get authType from user info');
       const userInfo = this.getUserInfo();
       if (userInfo && userInfo.authType) {
-        console.log('Found authType in user info, trying refresh again');
         return await this.performRefresh(userInfo.authType as AuthUserType).catch(() => null);
       }
     }
@@ -690,17 +492,12 @@ export class DirectGrantAuth {
 
   private static async performRefresh(authType: AuthUserType): Promise<TokenResponse | null> {
     try {
-      console.log('=== PERFORMING TOKEN REFRESH ===');
-      console.log('Auth type:', authType);
-      
       this.refreshAttempts++;
-      console.log('Refresh attempt number:', this.refreshAttempts);
       
       // Add AbortSignal for better timeout control
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15 seconds
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // Reduced timeout
 
-      console.log('Making request to /api/auth/refresh');
       // Call our new refresh endpoint which uses HttpOnly cookies
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
@@ -714,26 +511,20 @@ export class DirectGrantAuth {
 
       clearTimeout(timeoutId); // Clear timeout if request completes
 
-      console.log('Refresh API response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.warn(`Token refresh failed with status ${response.status}:`, errorData);
         
         // Special case: if it's a "no session" error during initial login, this might be expected
         if (response.status === 401 && (errorData.code === 'NO_SESSION_INITIAL_LOGIN' || errorData.code === 'NO_SESSION_NEW_VISITOR')) {
-          console.log('No session found during initial visit - this is expected');
           // Don't logout in this case, just return null to indicate no session
           return null;
         }
         
         // If refresh fails with 401, logout the user
         if (response.status === 401) {
-          console.log('Refresh failed with 401, logging out user');
           // Check if it's a session expired error
           if (errorData.error === 'Session expired') {
-            console.log('Session expired, showing appropriate message');
+            // Show appropriate message
           }
           this.logout();
         }
@@ -741,25 +532,18 @@ export class DirectGrantAuth {
       }
 
       const data = await response.json().catch(() => ({}));
-      console.log('Refresh successful, received data:', data);
       
       // Reset attempts on successful refresh
       this.refreshAttempts = 0;
       
       this.accessToken = data.token || null;
-      console.log('Access token updated');
       
-      // In session-based approach, don't store token in localStorage
-      // The token is stored in HttpOnly cookies on the server
-
       // Update user info
-      console.log('Fetching user info');
       await this.fetchAndSetUserInfo().catch(() => {
-        console.warn('Failed to fetch user info after refresh');
+        // Ignore error
       });
 
       // Return token response format
-      console.log('=== TOKEN REFRESH COMPLETED SUCCESSFULLY ===');
       return {
         access_token: data.token || '',
         token_type: 'Bearer',
@@ -767,11 +551,8 @@ export class DirectGrantAuth {
         refresh_token: '' // We don't expose the refresh token to the client
       };
     } catch (error) {
-      console.error('Token refresh error:', error);
-      
       // If we've exceeded max attempts, logout
       if (this.refreshAttempts >= this.MAX_REFRESH_ATTEMPTS) {
-        console.log('Max refresh attempts exceeded, logging out user');
         this.logout();
       }
       
@@ -786,7 +567,7 @@ export class DirectGrantAuth {
             refresh_token: ''
           };
         } catch (e) {
-          console.warn('Failed to fetch user info after refresh error:', e);
+          // Ignore error
         }
       }
       
@@ -799,7 +580,7 @@ export class DirectGrantAuth {
           localStorage.removeItem('userData');
           localStorage.removeItem('userId');
         } catch (e) {
-          console.warn('Failed to clear localStorage:', e);
+          // Ignore error
         }
       }
       
@@ -808,39 +589,31 @@ export class DirectGrantAuth {
   }
 
   static getToken(): string | null {
-    console.log('getToken called, returning:', this.accessToken ? `${this.accessToken.substring(0, 20)}...` : 'null');
     return this.accessToken;
   }
 
   static getUserInfo(): AuthUser | null {
-    console.log('getUserInfo called, returning:', this.userInfo);
     return this.userInfo;
   }
 
   static isAuthenticated(): boolean {
-    console.log('isAuthenticated called');
     const token = this.getToken();
-    console.log('Token from getToken:', token ? `${token.substring(0, 20)}...` : 'null');
     if (!token) {
-      console.log('No token, returning false');
       return false;
     }
 
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const isValid = payload.exp * 1000 > Date.now();
-      console.log('Token is valid:', isValid);
       
       // If token is invalid, clear it
       if (!isValid) {
-        console.log('Token is invalid, clearing it');
         this.accessToken = null;
         this.userInfo = null;
       }
       
       return isValid;
     } catch (error) {
-      console.log('Failed to parse token, clearing it:', error);
       // If we can't parse the token, clear it
       this.accessToken = null;
       this.userInfo = null;
@@ -849,9 +622,7 @@ export class DirectGrantAuth {
   }
 
   static async logout(): Promise<void> {
-    console.log('Logout function called');
     try {
-      console.log('Calling server-side logout');
       // Clear server-side session first
       await fetch('/api/auth/logout', {
         method: 'POST',
@@ -859,16 +630,13 @@ export class DirectGrantAuth {
         headers: {
           'Content-Type': 'application/json',
         },
-      }).catch((error) => {
-        console.log('Server-side logout failed:', error);
+      }).catch(() => {
         // Ignore fetch errors
       });
     } catch (error) {
-      console.warn('Server-side logout failed:', error);
       // Continue with client-side cleanup even if server logout fails
     }
 
-    console.log('Clearing client-side state');
     // Clear client-side state
     this.accessToken = null;
     this.refreshToken = null;
@@ -877,50 +645,38 @@ export class DirectGrantAuth {
     this.refreshPromise = null;
     
     if (typeof window !== 'undefined') {
-      console.log('Clearing localStorage');
       try {
         localStorage.removeItem('kc-token');
         localStorage.removeItem('authType');
         localStorage.removeItem('userData');
         localStorage.removeItem('userId');
       } catch (e) {
-        console.warn('Failed to clear localStorage:', e);
+        // Ignore error
       }
       
-      console.log('Clearing cookies');
       // Also clear cookies by setting them to expire in the past
       try {
         document.cookie = 'kc-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         document.cookie = 'authType=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         document.cookie = 'sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       } catch (e) {
-        console.warn('Failed to clear cookies:', e);
+        // Ignore error
       }
     }
-    console.log('Logout completed');
   }
 
   static async register(email: string, password: string, companyName: string | null, firstName: string, lastName: string, authType: AuthUserType): Promise<any> {
-    console.log('Register function called with:', { email, companyName, firstName, lastName, authType });
     // Always fetch a fresh CSRF token before state‑changing request (lightweight + ensures cookie/header pair)
     try {
-      console.log('Registering user with data:', { email, password: '***', companyName, firstName, lastName, authType });
-      
       const csrfRes = await fetch('/api/auth/csrf-token', { 
         credentials: 'include',
         // Add timeout to prevent hanging requests
         signal: AbortSignal.timeout(3000)
       });
       if (!csrfRes.ok) {
-        console.warn('Failed to prefetch CSRF token, proceeding may fail');
+        // Ignore error
       }
       const { csrfToken } = await csrfRes.json().catch(() => ({ csrfToken: undefined }));
-
-      console.log('Making request to /api/users endpoint');
-      console.log('Request headers:', {
-        'Content-Type': 'application/json',
-        ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
-      });
 
       const response = await fetch('/api/users', {
         method: 'POST',
@@ -938,24 +694,16 @@ export class DirectGrantAuth {
           group: authType,
         }),
         // Add timeout to prevent hanging requests
-        signal: AbortSignal.timeout(15000)
+        signal: AbortSignal.timeout(10000)
       });
 
-      console.log('Registration response status:', response.status);
-      console.log('Registration response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
-        console.log('Registration response not OK');
         const error = await response.json().catch(() => ({}));
         throw new Error(error.error || error.message || 'Registration failed');
       }
 
-      console.log('Registration successful');
       return response.json().catch(() => ({}));
     } catch (e) {
-      console.error('Registration request failed:', e);
-      console.error('Request data:', { email, password: '***', companyName, firstName, lastName, authType });
-      
       // Rethrow normalized error
       if (e instanceof Error) throw e;
       throw new Error('Registration failed');
@@ -964,42 +712,29 @@ export class DirectGrantAuth {
 }
 
 export const initializeKeycloak = async (): Promise<boolean> => {
-  console.log('initializeKeycloak called');
   if (DirectGrantAuth.isAuthenticated()) {
-    console.log('User is already authenticated');
     return true;
   }
-  console.log('Attempting to refresh authentication');
   const refreshed = await DirectGrantAuth.refresh();
-  console.log('Refresh result:', refreshed);
   return !!refreshed;
 };
 
 // Export utility functions that use DirectGrantAuth
 export const getToken = () => {
-  console.log('getToken called');
   return DirectGrantAuth.getToken();
 };
 export const getUserInfo = () => {
-  console.log('getUserInfo called');
   return DirectGrantAuth.getUserInfo();
 };
 export const isAuthenticated = () => {
-  console.log('isAuthenticated called');
   return DirectGrantAuth.isAuthenticated();
 };
 export const logout = () => {
-  console.log('logout called');
   return DirectGrantAuth.logout();
 };
 export const authenticateWithPassword = (username: string, password: string, authType: AuthUserType, otp?: string) => {
-  console.log('authenticateWithPassword called with:', { username, authType, hasOtp: !!otp });
   return DirectGrantAuth.login(username, password, authType, otp);
 };
 export const register = (email: string, password: string, companyName: string | null, firstName: string, lastName: string, authType: AuthUserType) => {
-  console.log('register called with:', { email, companyName, firstName, lastName, authType });
   return DirectGrantAuth.register(email, password, companyName, firstName, lastName, authType);
 };
-
-console.log('Exporting keycloak instance');
-export default keycloak;

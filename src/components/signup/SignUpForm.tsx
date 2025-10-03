@@ -179,11 +179,17 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
       case 'password': return !!watchedPassword;
       case 'confirmPassword': return !!watchedConfirmPassword;
       case 'companyName': return !!watchedCompanyName;
-      case 'termsAccepted': return watchedTermsAccepted === true;
+      case 'termsAccepted': return watchedTermsAccepted !== undefined && watchedTermsAccepted !== false; // Only consider touched if user has interacted (true or explicitly set to false)
       default: return false;
     }
   }, [watchedFirstName, watchedLastName, watchedEmail, watchedPassword, watchedConfirmPassword, watchedCompanyName, watchedTermsAccepted]);
-  const showErr = (field: keyof (SignUpFormData & { termsAccepted: boolean })) => !!getErr(field) && touched(field);
+  const showErr = (field: keyof (SignUpFormData & { termsAccepted: boolean })) => {
+    
+    if (field === 'termsAccepted') {
+      return !!getErr(field) && (touched(field) || isSubmitting);
+    }
+    return !!getErr(field) && touched(field);
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -289,13 +295,18 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
           id="termsAccepted"
           type="checkbox"
           disabled={isLoading}
-          className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-gray-500 disabled:opacity-50"
+          className="h-4 w-4 rounded border-gray-300 cursor-pointer text-green-600 focus:ring-gray-500 disabled:opacity-50"
         />
         <label htmlFor="termsAccepted" className="text-xs text-gray-600 select-none">
           I agree to the <span className="underline">Terms</span> and <span className="underline">Privacy Policy</span>
         </label>
       </div>
-      {getErr('termsAccepted') && <p className="text-xs text-red-600 -mt-2 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{getErr('termsAccepted')}</p>}
+      {showErr('termsAccepted') && (
+        <p className="text-xs text-red-600 flex items-center gap-1">
+          <AlertCircle className="h-3 w-3" />
+          {getErr('termsAccepted')}
+        </p>
+      )}
 
       <button
         type="submit"

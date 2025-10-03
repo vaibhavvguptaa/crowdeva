@@ -23,7 +23,7 @@ export default function ProjectHeader() {
             // Use the backend-provided formattedDate directly
             const projectWithFormattedDate = {
               ...parsedProject,
-              formattedDate: parsedProject.formattedDate || 'Invalid Date'
+              formattedDate: parsedProject.formattedDate || 'Unknown Date'
             };
             setProject(projectWithFormattedDate);
             setLoading(false);
@@ -34,7 +34,7 @@ export default function ProjectHeader() {
               // Use the backend-provided formattedDate directly
               const projectWithFormattedDate = {
                 ...projectData,
-                formattedDate: projectData.formattedDate || 'Invalid Date'
+                formattedDate: projectData.formattedDate
               };
               setProject(projectWithFormattedDate);
               // Update localStorage with fresh data
@@ -49,7 +49,7 @@ export default function ProjectHeader() {
             // Use the backend-provided formattedDate directly
             const projectWithFormattedDate = {
               ...projectData,
-              formattedDate: projectData.formattedDate || 'Invalid Date'
+              formattedDate: projectData.formattedDate
             };
             setProject(projectWithFormattedDate);
             

@@ -173,25 +173,30 @@ const ProjectsPage: React.FC = () => {
           priority: projectData.priority || 'medium',
           deadline: projectData.deadline,
           evaluationStructure: projectData.evaluationStructure || basicEvaluationStructure,
-          formattedDate: 'Invalid Date', // Will be set by backend
+          // Remove the placeholder formattedDate - it will be set by the backend
         };
-        
+          
         // Save the project using projectService
         const savedProject = await projectService.createProject(newProject);
-        
+          
         // Update the local state with the new project returned from the API
         // This ensures we have the project as it was actually saved in the database
         setProjects((prev) => [savedProject, ...prev]);
-        
- 
+          
         router.push(`/projects/evaluation-builder/${savedProject.id}`);
-        
+          
         setShowCreateModal(false);
       } catch (err) {
         console.error("Error creating project:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to create project"
-        );
+        // Provide a more user-friendly error message
+        const errorMessage = err instanceof Error 
+          ? err.message.includes('fetch') 
+            ? 'Network error. Please check your connection and try again.' 
+            : err.message.includes('Authentication') 
+              ? 'Please sign in to create a project.' 
+              : err.message
+          : "Failed to create project";
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -249,7 +254,7 @@ const ProjectsPage: React.FC = () => {
                   body: []
                 }
               },
-              formattedDate: 'Invalid Date', // Will be set by backend
+              // Remove the placeholder formattedDate - it will be set by the backend
             }
           }
         );
@@ -403,20 +408,19 @@ const ProjectsPage: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             {/* Search Input */}
             <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input
                 type="text"
                 placeholder="Search projects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full h-10 pl-10 pr-9 border border-slate-200 rounded-xl bg-white/70 backdrop-blur-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-300 transition-all text-slate-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="block w-full h-10 pl-3 pr-9 border border-slate-200 rounded-xl bg-white/70 backdrop-blur-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-300 transition-all text-slate-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
                 aria-label="Search projects"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                   aria-label="Clear search"
                 >
                   <X className="w-4 h-4" />

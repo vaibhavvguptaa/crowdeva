@@ -61,7 +61,7 @@ export default function ProjectsList({
     return projects.map((p) => {
       const createdAtTs = new Date(p.createdAt).getTime();
       // Use the backend-provided formattedDate directly
-      const formattedDate = p.formattedDate || 'Invalid Date';
+      const formattedDate = p.formattedDate || 'Unknown Date';
       return {
         ...p,
         createdAtTs,

@@ -10,25 +10,6 @@ const BarChart = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), {
   loading: () => <div className="h-64 flex items-center justify-center text-gray-400">Loading chart...</div>
 });
 
-// Import chart.js components only on client side
-useEffect(() => {
-  const initChart = async () => {
-    const ChartJS = await import('chart.js');
-    const CategoryScale = await import('chart.js').then(mod => mod.CategoryScale);
-    const LinearScale = await import('chart.js').then(mod => mod.LinearScale);
-    const BarElement = await import('chart.js').then(mod => mod.BarElement);
-    const Title = await import('chart.js').then(mod => mod.Title);
-    const Tooltip = await import('chart.js').then(mod => mod.Tooltip);
-    const Legend = await import('chart.js').then(mod => mod.Legend);
-    
-    ChartJS.Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-  };
-  
-  if (typeof window !== 'undefined') {
-    initChart();
-  }
-}, []);
-
 interface WorkflowActivityItem {
   label: string;
   value: number;
@@ -61,6 +42,25 @@ export default memo(function WorkflowActivityChart({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+
+  // Initialize Chart.js components only on client side
+  useEffect(() => {
+    const initChart = async () => {
+      const ChartJS = await import('chart.js');
+      const CategoryScale = await import('chart.js').then(mod => mod.CategoryScale);
+      const LinearScale = await import('chart.js').then(mod => mod.LinearScale);
+      const BarElement = await import('chart.js').then(mod => mod.BarElement);
+      const Title = await import('chart.js').then(mod => mod.Title);
+      const Tooltip = await import('chart.js').then(mod => mod.Tooltip);
+      const Legend = await import('chart.js').then(mod => mod.Legend);
+      
+      ChartJS.Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+    };
+    
+    if (typeof window !== 'undefined') {
+      initChart();
+    }
+  }, []);
 
   useEffect(() => {
     setIsClient(true);

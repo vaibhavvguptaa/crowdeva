@@ -38,5 +38,45 @@
     "userId": "customer@example.com",
     "ipAddress": "::1",
     "userAgent": "axios/1.12.2"
+  },
+  "0mut5cm2ioup9wbbcgbw51": {
+    "refreshToken": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI3YTIwMDMxNC02MmJhLTRkOTctOGY3Zi0wNmM1M2ExMWI1MTcifQ.eyJleHAiOjE3NTk0NzQ4NDIsImlhdCI6MTc1OTQ3MzA0MiwianRpIjoiNjUxZmJkZjEtNWU1NC00NzIyLWJkMjAtNmEzYzg5ZjE5YjVmIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9DdXN0b21lciIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC9yZWFsbXMvQ3VzdG9tZXIiLCJzdWIiOiI2OTQ3MjFhNy1hNDNiLTRkMmQtOTU4ZC1lMzVmYWFhZDZhYTAiLCJ0eXAiOiJSZWZyZXNoIiwiYXpwIjoiY3VzdG9tZXItd2ViIiwic2lkIjoiNjlkZDc5MWYtOWM3OC00N2VjLTk5NjgtNDMyZGJkNzk3ZDBiIiwic2NvcGUiOiJhY3IgYmFzaWMgd2ViLW9yaWdpbnMgZW1haWwgcm9sZXMgcHJvZmlsZSJ9.EeddzsLIsZ_ACXhm1gjkk6V-JzZEtjAdn8XIG0Yojq0APiJTqay1J0bNG1EF1pzDbLvtdoSiRE_E3VhkEf6L8g",
+    "authType": "customers",
+    "createdAt": 1759472973632,
+    "lastRotatedAt": 1759473042399,
+    "loginAttempts": 0,
+    "userId": "694721a7-a43b-4d2d-958d-e35faaad6aa0",
+    "ipAddress": "::1",
+    "userAgent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36 Edg/140.0.0.0"
+  },
+  "dt4ybj09jmtbivhfipksb": {
+    "refreshToken": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI3YTIwMDMxNC02MmJhLTRkOTctOGY3Zi0wNmM1M2ExMWI1MTcifQ.eyJleHAiOjE3NTk0NzU1MzUsImlhdCI6MTc1OTQ3MzczNSwianRpIjoiMTNiMjg2OTItYTdkMy00OTZhLTkyNzktODQ1Y2NkOTJmZWY0IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9DdXN0b21lciIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC9yZWFsbXMvQ3VzdG9tZXIiLCJzdWIiOiI2OTQ3MjFhNy1hNDNiLTRkMmQtOTU4ZC1lMzVmYWFhZDZhYTAiLCJ0eXAiOiJSZWZyZXNoIiwiYXpwIjoiY3VzdG9tZXItd2ViIiwic2lkIjoiYWYzZmI1Y2ItYWViOC00MTI2LWEzYzMtNDc0YzRjZjk5MzBiIiwic2NvcGUiOiJhY3IgYmFzaWMgd2ViLW9yaWdpbnMgZW1haWwgcm9sZXMgcHJvZmlsZSJ9.DkLwzZxx27raLXmLr9FnoeSEsKJ4oxMS6Sbki9HaszEtAugocrVDAwJPIxIBzWWfHfbMk7uscBwt1fUCMNzfuA",
+    "authType": "customers",
+    "createdAt": 1759473049495,
+    "lastRotatedAt": 1759473735660,
+    "loginAttempts": 0,
+    "userId": "694721a7-a43b-4d2d-958d-e35faaad6aa0",
+    "ipAddress": "::1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0"
+  },
+  "5rabip1zugxjv5auchscv8": {
+    "refreshToken": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI3YTIwMDMxNC02MmJhLTRkOTctOGY3Zi0wNmM1M2ExMWI1MTcifQ.eyJleHAiOjE3NTk0ODYxNjIsImlhdCI6MTc1OTQ4NDM2MiwianRpIjoiYWM3Njk3MzEtMDc3Yi00YjE5LTkxYzQtZDBkOWQ1MWUyNWQ3IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9DdXN0b21lciIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC9yZWFsbXMvQ3VzdG9tZXIiLCJzdWIiOiI2OTQ3MjFhNy1hNDNiLTRkMmQtOTU4ZC1lMzVmYWFhZDZhYTAiLCJ0eXAiOiJSZWZyZXNoIiwiYXpwIjoiY3VzdG9tZXItd2ViIiwic2lkIjoiZjE0MTU4MjItZTRjNC00ZWMzLWI3NTctMjZmNjJiMThiNDc3Iiwic2NvcGUiOiJhY3IgYmFzaWMgd2ViLW9yaWdpbnMgZW1haWwgcm9sZXMgcHJvZmlsZSJ9.Cjfe7AzZ6xq2okrZtaL2dNshdcvNJitBT0pwwxoPlZqamn80DLNbayKnw9BMpr4vvQ13qPoBUJbniU4G_v_TnA",
+    "authType": "customers",
+    "createdAt": 1759480212628,
+    "lastRotatedAt": 1759484362503,
+    "loginAttempts": 0,
+    "userId": "694721a7-a43b-4d2d-958d-e35faaad6aa0",
+    "ipAddress": "::1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0"
+  },
+  "obafre6knic03jlmopk021g": {
+    "refreshToken": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI3YTIwMDMxNC02MmJhLTRkOTctOGY3Zi0wNmM1M2ExMWI1MTcifQ.eyJleHAiOjE3NTk0ODYxODUsImlhdCI6MTc1OTQ4NDM4NSwianRpIjoiNzdlNmI3MGEtNzBkOS00NDg4LTk5Y2YtMjYwMWMyNTc3NDlmIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9DdXN0b21lciIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC9yZWFsbXMvQ3VzdG9tZXIiLCJzdWIiOiI2OTQ3MjFhNy1hNDNiLTRkMmQtOTU4ZC1lMzVmYWFhZDZhYTAiLCJ0eXAiOiJSZWZyZXNoIiwiYXpwIjoiY3VzdG9tZXItd2ViIiwic2lkIjoiZDU1Y2ZkMGItNDYyZS00YjFlLWE3YTEtNjQzZTUxMmEwYWQ1Iiwic2NvcGUiOiJhY3IgYmFzaWMgd2ViLW9yaWdpbnMgZW1haWwgcm9sZXMgcHJvZmlsZSJ9._JbD1CkE6bHdu-8DQnz1Nb9QN5KjFTjnBmAVIs-BsioRQRa5NmhPHyAihL5dzhKjKtO63MkXB6zJoxJD_vuDuw",
+    "authType": "customers",
+    "createdAt": 1759484382538,
+    "lastRotatedAt": 1759484386021,
+    "loginAttempts": 0,
+    "userId": "694721a7-a43b-4d2d-958d-e35faaad6aa0",
+    "ipAddress": "::1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0"
   }
 }

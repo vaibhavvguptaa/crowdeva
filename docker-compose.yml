@@ -11,6 +11,8 @@ services:
     restart: unless-stopped
     networks:
       - keycloak_net
+    ports:
+      - "3308:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 30s
@@ -39,6 +41,13 @@ services:
     restart: unless-stopped
     networks:
       - keycloak_net
+    # Adding healthcheck for Keycloak
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   keycloak-init:
     image: node:18-alpine
@@ -49,14 +58,16 @@ services:
       "/bin/sh", "-c",
       "apk add --no-cache curl; \
        echo 'Waiting for Keycloak to be ready...'; \
-       sleep 60; \
-       until curl -s http://keycloak:8080/health/ready > /dev/null; do \
-         echo 'Keycloak not ready yet, waiting 5 seconds...'; \
-         sleep 5; \
+       # Increased wait time and added more robust checking
+       sleep 90; \
+       # Check multiple health endpoints
+       until curl -s http://keycloak:8080/health/ready > /dev/null || curl -s http://keycloak:8080/health > /dev/null; do \
+         echo 'Keycloak not ready yet, waiting 10 seconds...'; \
+         sleep 10; \
        done; \
        echo 'Keycloak is ready!'; \
-       echo 'Waiting 30 seconds for Keycloak to fully initialize...'; \
-       sleep 30; \
+       echo 'Waiting 45 seconds for Keycloak to fully initialize...'; \
+       sleep 45; \
        echo 'Initializing Keycloak realms and clients...'; \
        npm install node-fetch dotenv; \
        node init-keycloak.js"

@@ -261,6 +261,17 @@ export default function ImportSampleProjectsModal({
       onClose();
     } catch (error) {
       console.error("Failed to import projects:", error);
+      // Show a user-friendly error message
+      const errorMessage = error instanceof Error 
+        ? error.message.includes('fetch') 
+          ? 'Network error. Please check your connection and try again.' 
+          : error.message.includes('Authentication') 
+            ? 'Please sign in to import projects.' 
+            : error.message
+        : "Failed to import projects";
+      // In a real implementation, you would show this error to the user
+      // For now, we'll just log it
+      console.error("Import error:", errorMessage);
     }
   }, [onImportProjects, onClose, sampleProjects, selectedCount]);
 

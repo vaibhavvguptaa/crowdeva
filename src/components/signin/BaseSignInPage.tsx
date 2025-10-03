@@ -76,7 +76,7 @@ export const BaseSignInPage: React.FC<BaseSignInPageProps> = ({
     setOtpPassword("");
     setOtpResendCount(0);
     
-    setTimeout(() => setIsTransitioning(false), 150);
+    setTimeout(() => setIsTransitioning(false), 100); // Reduced transition time
   };
 
   const handleSignIn = async (
@@ -124,8 +124,6 @@ export const BaseSignInPage: React.FC<BaseSignInPageProps> = ({
           // Check if it's a CSRF token error that requires page refresh
           if (result.error.includes('Session expired') || result.error.includes('CSRF token')) {
             setError('Your session has expired. Please refresh the page and try again.');
-            // Optionally, we could automatically refresh the page after a delay
-            // setTimeout(() => window.location.reload(), 3000);
           } else {
             const errorState = AuthErrorHandler.handleError(
               new Error(result.error),
@@ -149,7 +147,7 @@ export const BaseSignInPage: React.FC<BaseSignInPageProps> = ({
 
             setTimeout(() => {
               window.location.href = redirectPath;
-            }, 1500);
+            }, 500); // Reduced redirect delay
           }
         }
       } else if (stage === "otp" && otp) {
@@ -167,7 +165,7 @@ export const BaseSignInPage: React.FC<BaseSignInPageProps> = ({
           // Add a small delay to show the success message before redirecting
           setTimeout(() => {
             window.location.href = redirectPath;
-          }, 1500);
+          }, 500); // Reduced redirect delay
         }
       }
     } catch (err: any) {

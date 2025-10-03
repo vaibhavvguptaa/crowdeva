@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 /**
- * Script to initialize Keycloak realms and clients
- * This script will be run automatically when the docker-compose environment starts
+ * Script to initialize Keycloak realms and clients for local development
  */
 
 // Load environment variables
-require('dotenv').config();
+require('dotenv').config({ path: '../.env' });
 
 const fetch = require('node-fetch');
 
@@ -15,9 +14,8 @@ console.log('KEYCLOAK_ADMIN:', process.env.KEYCLOAK_ADMIN);
 console.log('KEYCLOAK_ADMIN_PASSWORD:', process.env.KEYCLOAK_ADMIN_PASSWORD ? '****' : 'NOT SET');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 
-// Use localhost when running from host machine, keycloak when running from docker
-// When running in docker-compose, we should use the service name 'keycloak'
-const KEYCLOAK_URL = process.env.KEYCLOAK_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8080' : 'http://keycloak:8080');
+// Use localhost for local development
+const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://localhost:8080';
 const ADMIN_USER = process.env.KEYCLOAK_ADMIN || 'admin@keycloak.local';
 const ADMIN_PASSWORD = process.env.KEYCLOAK_ADMIN_PASSWORD || 'dev_admin_password_2024!';
 
@@ -36,9 +34,9 @@ const fetchWithTimeout = (url, options, timeout = 10000) => {
 };
 
 const REALMS = [
-  { name: 'Customer', client: 'crowdeval-customer' },
-  { name: 'developer', client: 'crowdeval-developer' },
-  { name: 'vendor', client: 'crowdeval-vendor' }
+  { name: 'Customer', client: 'customer-web' },
+  { name: 'developer', client: 'dev-web' },
+  { name: 'vendor', client: 'vendor-web' }
 ];
 
 async function getAdminToken() {
@@ -193,11 +191,11 @@ async function createClient(token, realmName, clientId) {
 
 function getClientName(clientId) {
   switch(clientId) {
-    case 'crowdeval-customer':
+    case 'customer-web':
       return 'CrowdEval Customer Web Client';
-    case 'crowdeval-developer':
+    case 'dev-web':
       return 'CrowdEval Developer Web Client';
-    case 'crowdeval-vendor':
+    case 'vendor-web':
       return 'CrowdEval Vendor Web Client';
     default:
       return clientId;
@@ -206,11 +204,11 @@ function getClientName(clientId) {
 
 function getClientDescription(clientId) {
   switch(clientId) {
-    case 'crowdeval-customer':
+    case 'customer-web':
       return 'Customer web application client for CrowdEval';
-    case 'crowdeval-developer':
+    case 'dev-web':
       return 'Developer web application client for CrowdEval';
-    case 'crowdeval-vendor':
+    case 'vendor-web':
       return 'Vendor web application client for CrowdEval';
     default:
       return `Client for ${clientId}`;

@@ -181,7 +181,7 @@ Button.displayName = 'Button';
 type CreateProjectModalProps = {
   open: boolean;
   setOpen: (v: boolean) => void;
-  onCreateProject?: (data: { name: string; description: string; status: ProjectStatus }) => void;
+  onCreateProject?: (data: { name: string; description: string; status: ProjectStatus, formattedDate?: string }) => void;
 };
 
 const defaultForm = {
@@ -224,6 +224,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ open, setOpen, 
         name: form.name.trim(),
         description: form.description.trim(),
         status: form.status,
+        // Don't include formattedDate here - it will be set by the backend
       });
 
       // Pass the actual saved project to the callback instead of just the form data
@@ -231,6 +232,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ open, setOpen, 
         name: newProject.name,
         description: newProject.description || '',
         status: newProject.status,
+        formattedDate: newProject.formattedDate,
       });
       handleClose();
     } catch (e: any) {

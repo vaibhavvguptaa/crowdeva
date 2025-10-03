@@ -169,17 +169,10 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
     <header className={`bg-white border-b border-gray-200 px-5 py-2 flex justify-between items-center text-sm ${className}`}>
       <div className="flex items-center space-x-6">
         <Link href="/projects" className="flex items-center group" aria-label="CrowdEval Home">
-          <Image
-            src="/logo.png"
-            alt="CrowdEval"
-            width={140}
-            height={32}
-            priority
-            className="h-6 w-auto object-contain transition-transform duration-200 group-hover:scale-[1.04]"
-          />
+       <span  className="text-black font-bold">crowdeval</span>
           <span className="sr-only">CrowdEval</span>
         </Link>
-        <nav className="hidden md:flex items-center space-x-8">
+        <nav className="hidden md:flex items-center space-x-8 pl-6">
           <Link 
             href="/marketplace" 
             className="text-gray-700 hover:text-green-600 font-medium transition-colors"
