@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { projectServerService } from '@/services/projectService.server';
+import { getTeamMemberStatsByProjectId } from '@/lib/db/queries';
 
 // Simple in-memory cache for team data
 const teamCache = new Map<string, { data: any; timestamp: number }>();
@@ -8,11 +9,11 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 // GET /api/dashboard/[projectId]/team - Get project team members
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> } // ✅ Changed to Promise
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    // ✅ Await params before accessing projectId
-    const { projectId } = await params;
+    const resolvedParams = await params;
+    const { projectId } = resolvedParams;
     
     // Check cache first
     const cached = teamCache.get(projectId);
@@ -22,25 +23,21 @@ export async function GET(
       return NextResponse.json(cached.data);
     }
     
-    // Fetch the project to get its assignees
-    const project = await projectServerService.getProject(projectId); // ✅ Use destructured projectId
+    // Fetch real team member statistics from database
+    const teamStats = await getTeamMemberStatsByProjectId(projectId);
     
-    if (!project) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-    }
-
-    // Transform project assignees to dashboard team members format
-    const teamMembers = project.assignees.map((assignee, index) => ({
-      id: assignee.id,
-      name: assignee.name,
-      tasks: Math.floor(Math.random() * 500), 
-      accuracy: `${(assignee.permissions.canEvaluate ? 90 + Math.random() * 10 : 80 + Math.random() * 20).toFixed(1)}%`, 
-      avgTime: `${Math.floor(5 + Math.random() * 10)}m ${Math.floor(Math.random() * 60)}s`, 
-      issues: Math.floor(Math.random() * 20), 
-      avatarUrl: assignee.avatarUrl || `/avatars/user-${index + 1}.png`,
-      specialization: assignee.department || "General",
-      responseQuality: Math.floor(80 + Math.random() * 20), 
-      evaluationsToday: Math.floor(Math.random() * 30) 
+    // Transform database team stats to dashboard team members format
+    const teamMembers = teamStats.map((member) => ({
+      id: member.id,
+      name: member.name,
+      tasks: member.tasksAssigned,
+      accuracy: member.accuracy > 0 ? `${member.accuracy.toFixed(1)}%` : 'N/A',
+      avgTime: member.avgTimePerTask ? `${member.avgTimePerTask} min` : 'N/A',
+      issues: member.issuesReported,
+      avatarUrl: member.avatarUrl || undefined,
+      specialization: member.role,
+      responseQuality: member.tasksCompleted > 0 ? Math.min(100, Math.floor((member.tasksCompleted / member.tasksAssigned) * 100)) : 0,
+      evaluationsToday: 0 // This would require additional tracking
     }));
 
     // Cache the result

@@ -365,6 +365,32 @@ CREATE TABLE IF NOT EXISTS client_error_analytics (
   INDEX idx_timestamp (timestamp)
 );
 
+-- Evaluation projects table
+CREATE TABLE IF NOT EXISTS evaluation_projects (
+  id VARCHAR(255) PRIMARY KEY,
+  project_id VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  model_name VARCHAR(255) NOT NULL,
+  evaluation_type ENUM('performance', 'safety', 'bias', 'robustness', 'custom') NOT NULL,
+  status ENUM('running', 'completed', 'paused', 'failed', 'pending') NOT NULL,
+  progress INT DEFAULT 0,
+  accuracy DECIMAL(5,2) DEFAULT 0.00,
+  f1_score DECIMAL(5,2) DEFAULT 0.00,
+  latency INT DEFAULT 0,
+  test_cases INT DEFAULT 0,
+  completed_tests INT DEFAULT 0,
+  dataset VARCHAR(255),
+  evaluation_metrics JSON,
+  created_by VARCHAR(255) NOT NULL,
+  assigned_to JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  last_run_at TIMESTAMP NULL,
+  estimated_completion TIMESTAMP NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
 -- Indexes for better performance
 CREATE INDEX idx_developers_rating ON developers(rating);
 CREATE INDEX idx_developers_verified ON developers(verified);

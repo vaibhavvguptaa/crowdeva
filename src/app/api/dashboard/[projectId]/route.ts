@@ -8,7 +8,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> } // ✅ Changed to Promise
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     // Check if user is authenticated

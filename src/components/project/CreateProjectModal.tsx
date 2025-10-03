@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { projectService } from '@/services/projectService';
 import { ProjectStatus } from '@/types';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 
 type DialogRootProps = {
@@ -191,6 +192,7 @@ const defaultForm = {
 };
 
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ open, setOpen, onCreateProject }) => {
+  const { user } = useAuthContext();
   const resetKeyRef = React.useRef(0);
   const [form, setForm] = React.useState(defaultForm);
   const [touched, setTouched] = React.useState<{ name?: boolean }>({});
@@ -219,11 +221,18 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ open, setOpen, 
       setIsPending(true);
       setError(null);
 
-      // Create the project using projectService
+      // Get current user ID
+      const currentUserId = user?.sub || 'current-user';
+
+      // Create the project using projectService with all required fields
       const newProject = await projectService.createProject({
         name: form.name.trim(),
         description: form.description.trim(),
         status: form.status,
+        // Add missing required fields
+        type: 'General', // Default type
+        priority: 'medium', // Default priority
+        createdBy: currentUserId,
         // Don't include formattedDate here - it will be set by the backend
       });
 
@@ -241,7 +250,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ open, setOpen, 
     } finally {
       setIsPending(false);
     }
-  }, [form, onCreateProject, handleClose]);
+  }, [form, onCreateProject, handleClose, user]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {

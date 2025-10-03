@@ -191,6 +191,23 @@ class ProjectService {
       throw error;
     }
   }
+  
+  // Method to create an evaluation project
+  async createEvaluationProject(evaluationProjectData: any): Promise<any> {
+    // Remove artificial delay for production
+    // await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Use API calls on client side
+    try {
+      return await this.apiCall<any>('/api/evaluation-projects', {
+        method: 'POST',
+        body: JSON.stringify(evaluationProjectData),
+      });
+    } catch (error) {
+      console.error('Error creating evaluation project via API:', error);
+      throw error;
+    }
+  }
 }
 
 export const projectService = new ProjectService();

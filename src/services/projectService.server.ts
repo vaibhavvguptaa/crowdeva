@@ -2,10 +2,134 @@ import { ProjectWithMetrics, ProjectAssignee, UserRole } from '@/types';
 import { getProjects, getProjectById, createProject, updateProject, deleteProject, getUserProjectRole, updateProjectRBAC, saveEvaluationStructure, getEvaluationStructure, getUserById } from '@/lib/db/queries';
 
 export class ProjectServerService {
-  getProjectActivities(projectId: string): any {
-    throw new Error('Method not implemented.');
+  /**
+   * Gets project team members for dashboard with caching
+   */
+  private teamDataCache = new Map<string, { data: any[], timestamp: number }>();
+  private cacheExpiry = 5 * 60 * 1000; // 5 minutes
+
+  async getProjectTeam(projectId: string): Promise<any[]> {
+    // Check cache first
+    const cached = this.teamDataCache.get(projectId);
+    const now = Date.now();
+    
+    if (cached && (now - cached.timestamp) < this.cacheExpiry) {
+      return cached.data;
+    }
+
+    try {
+      // Import the database query function here to avoid circular dependencies
+      const { getTeamMemberStatsByProjectId } = await import('@/lib/db/queries');
+      
+      // Fetch real team member statistics from database
+      const teamStats = await getTeamMemberStatsByProjectId(projectId);
+      
+      // Transform database team stats to dashboard team members format
+      const teamMembers = teamStats.map((member) => ({
+        id: member.id,
+        name: member.name,
+        tasks: member.tasksAssigned,
+        accuracy: member.accuracy > 0 ? `${member.accuracy.toFixed(1)}%` : 'N/A',
+        avgTime: member.avgTimePerTask ? `${member.avgTimePerTask} min` : 'N/A',
+        issues: member.issuesReported,
+        avatarUrl: member.avatarUrl || undefined,
+        specialization: member.role,
+        responseQuality: member.tasksCompleted > 0 ? Math.min(100, Math.floor((member.tasksCompleted / member.tasksAssigned) * 100)) : 0,
+        evaluationsToday: 0 // This would require additional tracking
+      }));
+
+      // Cache the result
+      this.teamDataCache.set(projectId, { data: teamMembers, timestamp: now });
+      
+      return teamMembers;
+    } catch (error) {
+      console.error('Error fetching project team:', error);
+      throw new Error(`Failed to fetch project team: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
-  
+
+  /**
+   * Gets project workflow stats for dashboard with caching
+   */
+  private workflowDataCache = new Map<string, { data: { week: any[], month: any[] }, timestamp: number }>();
+
+  async getProjectWorkflowStats(projectId: string, timeframe: "week" | "month" = "week"): Promise<any[]> {
+    // Check cache first
+    const cached = this.workflowDataCache.get(projectId);
+    const now = Date.now();
+    
+    let weekData: any[] = [];
+    let monthData: any[] = [];
+    
+    if (cached && (now - cached.timestamp) < this.cacheExpiry) {
+      weekData = cached.data.week;
+      monthData = cached.data.month;
+    } else {
+      try {
+        // Import the database query function here to avoid circular dependencies
+        const { getProjectWorkflowStats } = await import('@/lib/db/queries');
+        
+        // Fetch real workflow statistics from database
+        const weekStats = await getProjectWorkflowStats(projectId, 7);
+        const monthStats = await getProjectWorkflowStats(projectId, 30);
+        
+        // Transform database workflow stats to dashboard format
+        weekData = weekStats.map((data) => ({
+          date: new Date(data.date).toLocaleDateString('en-US', { weekday: 'short' }),
+          total: data.tasksCreated,
+          completed: data.tasksCompleted,
+          inProgress: Math.max(0, data.tasksCreated - data.tasksCompleted)
+        }));
+        
+        monthData = monthStats.map((data) => ({
+          date: new Date(data.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          total: data.tasksCreated,
+          completed: data.tasksCompleted,
+          inProgress: Math.max(0, data.tasksCreated - data.tasksCompleted)
+        }));
+        
+        // Cache both datasets
+        this.workflowDataCache.set(projectId, { 
+          data: { week: weekData, month: monthData }, 
+          timestamp: now 
+        });
+      } catch (error) {
+        console.error('Error fetching project workflow stats:', error);
+        throw new Error(`Failed to fetch project workflow stats: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    
+    return timeframe === 'week' ? weekData : monthData;
+  }
+
+  /**
+   * Gets project activities for dashboard
+   */
+  async getProjectActivities(projectId: string): Promise<any[]> {
+    try {
+      // Import the database query function here to avoid circular dependencies
+      const { getProjectActivityLogs } = await import('@/lib/db/queries');
+      
+      // Fetch real activity logs from database
+      const activityLogs = await getProjectActivityLogs(projectId, 10);
+      
+      // Transform database activity logs to dashboard activities format
+      const activities = activityLogs.map((log) => ({
+        id: log.id,
+        user: log.userName || "Unknown User",
+        action: log.action,
+        timestamp: log.timestamp,
+        type: log.targetType === 'task' ? 'completed' : log.targetType === 'issue' ? 'reported' : 'submitted',
+        score: log.targetType === 'task' ? 90 + Math.floor(Math.random() * 10) : undefined // In a real implementation, this would come from actual data
+      }));
+      
+      return activities;
+    } catch (error) {
+      console.error('Error fetching project activities:', error);
+      throw new Error(`Failed to fetch project activities: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   // Add memory cache for better performance
   private generalCache = new Map<string, { data: any; timestamp: number }>();
   private generalCacheExpiry = 5 * 60 * 1000; // 5 minutes
@@ -180,115 +304,6 @@ export class ProjectServerService {
   }
 
   /**
-   * Gets project team members for dashboard with caching
-   */
-  private teamDataCache = new Map<string, { data: any[], timestamp: number }>();
-  private cacheExpiry = 5 * 60 * 1000; // 5 minutes
-
-  async getProjectTeam(projectId: string): Promise<any[]> {
-    // Check cache first
-    const cached = this.teamDataCache.get(projectId);
-    const now = Date.now();
-    
-    if (cached && (now - cached.timestamp) < this.cacheExpiry) {
-      return cached.data;
-    }
-
-    try {
-      const project = await this.getProject(projectId);
-      if (!project) return [];
-      
-      const teamMembers = project.assignees.map((assignee, index) => ({
-        id: assignee.id,
-        name: assignee.name,
-        tasks: Math.floor(Math.random() * 500), // Placeholder - would need actual task data
-        accuracy: `${(assignee.permissions.canEvaluate ? 90 + Math.random() * 10 : 80 + Math.random() * 20).toFixed(1)}%`, // Placeholder
-        avgTime: `${Math.floor(5 + Math.random() * 10)}m ${Math.floor(Math.random() * 60)}s`, // Placeholder
-        issues: Math.floor(Math.random() * 20), // Placeholder
-        avatarUrl: assignee.avatarUrl || `/avatars/user-${index + 1}.png`,
-        specialization: assignee.department || "General", // Placeholder
-        responseQuality: Math.floor(80 + Math.random() * 20), // Placeholder
-        evaluationsToday: Math.floor(Math.random() * 30) // Placeholder
-      }));
-
-      // Cache the result
-      this.teamDataCache.set(projectId, { data: teamMembers, timestamp: now });
-      
-      return teamMembers;
-    } catch (error) {
-      console.error('Error fetching project team:', error);
-      throw new Error(`Failed to fetch project team: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Gets project workflow stats for dashboard with caching
-   */
-  private workflowDataCache = new Map<string, { data: { week: any[], month: any[] }, timestamp: number }>();
-
-  async getProjectWorkflowStats(projectId: string, timeframe: "week" | "month" = "week"): Promise<any[]> {
-    // Check cache first
-    const cached = this.workflowDataCache.get(projectId);
-    const now = Date.now();
-    
-    let weekData: any[] = [];
-    let monthData: any[] = [];
-    
-    if (cached && (now - cached.timestamp) < this.cacheExpiry) {
-      weekData = cached.data.week;
-      monthData = cached.data.month;
-    } else {
-      // Generate both week and month data
-      const project = await this.getProject(projectId);
-      if (!project) return [];
-      
-      // Generate weekly data (7 days)
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      weekData = days.map((day, index) => {
-        // Use project metrics to generate realistic data
-        const baseValue = Math.max(10, Math.floor(project.metrics.totalTasks / 7));
-        const variance = Math.floor(baseValue * 0.5);
-        const total = Math.max(0, baseValue + Math.floor(Math.random() * variance * 2) - variance);
-        const completed = Math.max(0, Math.floor(total * (project.metrics.accuracy / 100)));
-        const inProgress = total - completed;
-        
-        return {
-          date: day,
-          total,
-          completed,
-          inProgress: Math.max(0, inProgress)
-        };
-      });
-      
-      // Generate monthly data (4 weeks)
-      const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-      monthData = weeks.map((week, index) => {
-        // Use project metrics to generate realistic data
-        const baseValue = Math.max(20, Math.floor(project.metrics.totalTasks / 4));
-        const variance = Math.floor(baseValue * 0.3);
-        const total = Math.max(0, baseValue + Math.floor(Math.random() * variance * 2) - variance);
-        const completed = Math.max(0, Math.floor(total * (project.metrics.accuracy / 100)));
-        const inProgress = total - completed;
-        
-        return {
-          date: week,
-          total,
-          completed,
-          inProgress: Math.max(0, inProgress)
-        };
-      });
-      
-      // Cache both datasets
-      this.workflowDataCache.set(projectId, { 
-        data: { week: weekData, month: monthData }, 
-        timestamp: now 
-      });
-    }
-    
-    return timeframe === 'week' ? weekData : monthData;
-  }
-
-  /**
    * Gets all dashboard data in a single call for better performance
    */
   async getDashboardData(projectId: string): Promise<{ metrics: any, team: any[], workflow: { week: any[], month: any[] } }> {
@@ -352,7 +367,7 @@ export class ProjectServerService {
       id: projectId,
       name: projectData.name || 'Untitled Project',
       description: projectData.description || '',
-      createdAt: formatDateTime(projectData.createdAt),
+      createdAt: formatDateTime(projectData.createdAt || new Date()),
       updatedAt: formatDateTime(projectData.updatedAt || projectData.createdAt || new Date()),
       status: projectData.status || 'active',
       createdBy: currentUserId,
@@ -398,9 +413,7 @@ export class ProjectServerService {
       console.log('ProjectService: Creating/updating settings for project', projectId);
       // Import the database query function here to avoid circular dependencies
       const { createProjectSettings } = await import('@/lib/db/queries');
-      const result = await createProjectSettings(projectId, settings);
-      console.log('ProjectService: Settings creation/update result', result);
-      return result;
+      return await createProjectSettings(projectId, settings);
     } catch (error) {
       console.error('ProjectService: Error creating/updating project settings:', error);
       throw new Error(`Failed to create/update project settings: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -410,7 +423,7 @@ export class ProjectServerService {
   /**
    * Gets project settings
    */
-  async getProjectSettings(projectId: string): Promise<any | null> {
+  async getProjectSettings(projectId: string): Promise<any> {
     // Check if we're on the server side
     if (typeof window !== 'undefined') {
       throw new Error('This function can only be called on the server side');
@@ -420,9 +433,7 @@ export class ProjectServerService {
       console.log('ProjectService: Fetching settings for project', projectId);
       // Import the database query function here to avoid circular dependencies
       const { getProjectSettings } = await import('@/lib/db/queries');
-      const result = await getProjectSettings(projectId);
-      console.log('ProjectService: Settings fetch result', result ? 'Found' : 'Not found');
-      return result;
+      return await getProjectSettings(projectId);
     } catch (error) {
       console.error('ProjectService: Error fetching project settings:', error);
       throw new Error(`Failed to fetch project settings: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -430,21 +441,62 @@ export class ProjectServerService {
   }
 
   /**
-   * Updates project settings
+   * Creates an evaluation project
    */
-  async updateProjectSettings(projectId: string, settings: Partial<any>): Promise<boolean> {
+  async createEvaluationProject(evaluationProjectData: any): Promise<any> {
     // Check if we're on the server side
     if (typeof window !== 'undefined') {
       throw new Error('This function can only be called on the server side');
     }
     
     try {
+      console.log('ProjectService: Creating evaluation project for project', evaluationProjectData.projectId);
       // Import the database query function here to avoid circular dependencies
-      const { updateProjectSettings } = await import('@/lib/db/queries');
-      return await updateProjectSettings(projectId, settings);
+      const { createEvaluationProject } = await import('@/lib/db/queries');
+      return await createEvaluationProject(evaluationProjectData);
     } catch (error) {
-      console.error('Error updating project settings:', error);
-      throw new Error(`Failed to update project settings: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('ProjectService: Error creating evaluation project:', error);
+      throw new Error(`Failed to create evaluation project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Updates an evaluation project
+   */
+  async updateEvaluationProject(id: string, updates: any): Promise<any> {
+    // Check if we're on the server side
+    if (typeof window !== 'undefined') {
+      throw new Error('This function can only be called on the server side');
+    }
+    
+    try {
+      console.log('ProjectService: Updating evaluation project', id);
+      // Import the database query function here to avoid circular dependencies
+      const { updateEvaluationProject } = await import('@/lib/db/queries');
+      return await updateEvaluationProject(id, updates);
+    } catch (error) {
+      console.error('ProjectService: Error updating evaluation project:', error);
+      throw new Error(`Failed to update evaluation project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Gets evaluation projects for a project
+   */
+  async getEvaluationProjects(projectId: string): Promise<any[]> {
+    // Check if we're on the server side
+    if (typeof window !== 'undefined') {
+      throw new Error('This function can only be called on the server side');
+    }
+    
+    try {
+      console.log('ProjectService: Fetching evaluation projects for project', projectId);
+      // Import the database query function here to avoid circular dependencies
+      const { getEvaluationProjectsByProjectId } = await import('@/lib/db/queries');
+      return await getEvaluationProjectsByProjectId(projectId);
+    } catch (error) {
+      console.error('ProjectService: Error fetching evaluation projects:', error);
+      throw new Error(`Failed to fetch evaluation projects: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

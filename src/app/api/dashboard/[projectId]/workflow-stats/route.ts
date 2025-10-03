@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { projectServerService } from '@/services/projectService.server';
+import { getProjectWorkflowStats } from '@/lib/db/queries';
 
 // Simple in-memory cache for workflow stats
 const workflowCache = new Map<string, { data: any; timestamp: number }>();
@@ -8,14 +9,15 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 // GET /api/dashboard/[projectId]/workflow-stats - Get project workflow statistics
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> } // ✅ Changed to Promise
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
     const timeframe = searchParams.get('timeframe') || 'week';
 
-    // ✅ Await params before accessing projectId
-    const { projectId } = await params;
+    // Resolve params before accessing projectId
+    const resolvedParams = await params;
+    const { projectId } = resolvedParams;
 
     // Check cache first
     const cacheKey = `${projectId}-${timeframe}`;
@@ -26,52 +28,46 @@ export async function GET(
       return NextResponse.json(cached.data);
     }
 
-    // Fetch the project
-    const project = await projectServerService.getProject(projectId);
-    
-    if (!project) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-    }
+    // Calculate days based on timeframe
+    const days = timeframe === 'week' ? 7 : 30;
 
-    // Generate workflow stats based on timeframe
-    let workflowStats;
+    // Fetch real workflow statistics from database
+    const workflowData = await getProjectWorkflowStats(projectId, days);
     
-    if (timeframe === 'week') {
-      // Generate weekly data (7 days)
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      workflowStats = days.map((day, index) => {
-        // Use project metrics to generate realistic data
-        const baseValue = Math.max(10, Math.floor(project.metrics.totalTasks / 7));
-        const variance = Math.floor(baseValue * 0.5);
-        const total = Math.max(0, baseValue + Math.floor(Math.random() * variance * 2) - variance);
-        const completed = Math.max(0, Math.floor(total * (project.metrics.accuracy / 100)));
-        const inProgress = total - completed;
+    // Transform database workflow stats to dashboard format
+    const workflowStats = workflowData.map((data) => ({
+      date: new Date(data.date).toLocaleDateString('en-US', { 
+        weekday: timeframe === 'week' ? 'short' : undefined,
+        month: timeframe === 'month' ? 'short' : undefined,
+        day: 'numeric'
+      }),
+      total: data.tasksCreated,
+      completed: data.tasksCompleted,
+      inProgress: Math.max(0, data.tasksCreated - data.tasksCompleted)
+    }));
+
+    // If no data, generate empty data points for the timeframe
+    if (workflowStats.length === 0) {
+      const dates = [];
+      const today = new Date();
+      
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
         
-        return {
-          date: day,
-          total,
-          completed,
-          inProgress: Math.max(0, inProgress)
-        };
-      });
-    } else {
-      // Generate monthly data (4 weeks)
-      const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-      workflowStats = weeks.map((week, index) => {
-        // Use project metrics to generate realistic data
-        const baseValue = Math.max(20, Math.floor(project.metrics.totalTasks / 4));
-        const variance = Math.floor(baseValue * 0.3);
-        const total = Math.max(0, baseValue + Math.floor(Math.random() * variance * 2) - variance);
-        const completed = Math.max(0, Math.floor(total * (project.metrics.accuracy / 100)));
-        const inProgress = total - completed;
-        
-        return {
-          date: week,
-          total,
-          completed,
-          inProgress: Math.max(0, inProgress)
-        };
-      });
+        dates.push({
+          date: date.toLocaleDateString('en-US', { 
+            weekday: timeframe === 'week' ? 'short' : undefined,
+            month: timeframe === 'month' ? 'short' : undefined,
+            day: 'numeric'
+          }),
+          total: 0,
+          completed: 0,
+          inProgress: 0
+        });
+      }
+      
+      workflowStats.push(...dates);
     }
 
     // Cache the result

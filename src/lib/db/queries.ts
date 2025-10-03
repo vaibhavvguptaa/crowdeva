@@ -216,8 +216,8 @@ export const createProject = async (projectData: Record<string, unknown>): Promi
         convertUndefinedToNull(projectData.type),
         convertUndefinedToNull(projectData.priority),
         formatDateTime(projectData.deadline as string | Date | undefined),
-        formatDateTime(projectData.createdAt as string | Date | undefined),
-        formatDateTime(projectData.updatedAt as string | Date | undefined)
+        formatDateTime(projectData.createdAt as string | Date | undefined) || new Date().toISOString().slice(0, 19).replace('T', ' '),
+        formatDateTime(projectData.updatedAt as string | Date | undefined) || new Date().toISOString().slice(0, 19).replace('T', ' ')
       ]
     );
     
@@ -986,6 +986,501 @@ export const updateProjectSettings = async (projectId: string, settings: Partial
     return result.affectedRows > 0;
   } catch (error) {
     console.error('Error updating project settings in database:', error);
+    throw error;
+  }
+};
+
+// Evaluation projects interface
+export interface EvaluationProject {
+  id: string;
+  projectId: string;
+  name: string;
+  description: string;
+  modelName: string;
+  evaluationType: "performance" | "safety" | "bias" | "robustness" | "custom";
+  status: "running" | "completed" | "paused" | "failed" | "pending";
+  progress: number;
+  accuracy?: number;
+  f1Score?: number;
+  latency?: number;
+  testCases: number;
+  completedTests: number;
+  dataset: string;
+  evaluationMetrics: string[];
+  createdBy: string;
+  assignedTo: string[];
+  createdAt: string;
+  updatedAt: string;
+  lastRunAt?: string;
+  estimatedCompletion?: string;
+}
+
+// Evaluation projects queries
+export const getEvaluationProjectsByProjectId = async (projectId: string): Promise<EvaluationProject[]> => {
+  if (!pool || !(await isDatabaseAvailable())) {
+    return [];
+  }
+  
+  try {
+    const convertUndefinedToNull = (value: unknown) => value === undefined ? null : value;
+    
+    const query = `
+      SELECT 
+        id,
+        project_id as projectId,
+        name,
+        description,
+        model_name as modelName,
+        evaluation_type as evaluationType,
+        status,
+        progress,
+        accuracy,
+        f1_score as f1Score,
+        latency,
+        test_cases as testCases,
+        completed_tests as completedTests,
+        dataset,
+        evaluation_metrics as evaluationMetrics,
+        created_by as createdBy,
+        assigned_to as assignedTo,
+        created_at as createdAt,
+        updated_at as updatedAt,
+        last_run_at as lastRunAt,
+        estimated_completion as estimatedCompletion
+      FROM evaluation_projects 
+      WHERE project_id = ?
+      ORDER BY created_at DESC
+    `;
+    
+    const [rows] = await pool.execute(query, [convertUndefinedToNull(projectId)]);
+    const dbProjects = rows as unknown[];
+    
+    // Transform database results to match the EvaluationProject interface
+    return dbProjects.map((row: any) => ({
+      id: row.id,
+      projectId: row.projectId,
+      name: row.name,
+      description: row.description,
+      modelName: row.modelName,
+      evaluationType: row.evaluationType,
+      status: row.status,
+      progress: row.progress,
+      accuracy: row.accuracy !== null ? Number(row.accuracy) : undefined,
+      f1Score: row.f1Score !== null ? Number(row.f1Score) : undefined,
+      latency: row.latency !== null ? Number(row.latency) : undefined,
+      testCases: row.testCases,
+      completedTests: row.completedTests,
+      dataset: row.dataset,
+      evaluationMetrics: row.evaluationMetrics ? JSON.parse(row.evaluationMetrics) : [],
+      createdBy: row.createdBy,
+      assignedTo: row.assignedTo ? JSON.parse(row.assignedTo) : [],
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      lastRunAt: row.lastRunAt,
+      estimatedCompletion: row.estimatedCompletion
+    }));
+  } catch (error) {
+    console.error('Error fetching evaluation projects from database:', error);
+    throw error;
+  }
+};
+
+export const createEvaluationProject = async (evaluationProject: Omit<EvaluationProject, 'id' | 'createdAt' | 'updatedAt'>): Promise<EvaluationProject> => {
+  if (!pool || !(await isDatabaseAvailable())) {
+    throw new Error('Database not available for creating evaluation project');
+  }
+  
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    const convertUndefinedToNull = (value: unknown) => value === undefined ? null : value;
+    
+    // Generate a unique ID for the evaluation project
+    const id = `eval-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const query = `
+      INSERT INTO evaluation_projects (
+        id, project_id, name, description, model_name, evaluation_type, status, progress,
+        accuracy, f1_score, latency, test_cases, completed_tests, dataset, evaluation_metrics,
+        created_by, assigned_to, created_at, updated_at, last_run_at, estimated_completion
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    
+    await connection.execute(query, [
+      id,
+      convertUndefinedToNull(evaluationProject.projectId),
+      convertUndefinedToNull(evaluationProject.name),
+      convertUndefinedToNull(evaluationProject.description),
+      convertUndefinedToNull(evaluationProject.modelName),
+      convertUndefinedToNull(evaluationProject.evaluationType),
+      convertUndefinedToNull(evaluationProject.status),
+      convertUndefinedToNull(evaluationProject.progress),
+      convertUndefinedToNull(evaluationProject.accuracy),
+      convertUndefinedToNull(evaluationProject.f1Score),
+      convertUndefinedToNull(evaluationProject.latency),
+      convertUndefinedToNull(evaluationProject.testCases),
+      convertUndefinedToNull(evaluationProject.completedTests),
+      convertUndefinedToNull(evaluationProject.dataset),
+      JSON.stringify(evaluationProject.evaluationMetrics),
+      convertUndefinedToNull(evaluationProject.createdBy),
+      JSON.stringify(evaluationProject.assignedTo),
+      now,
+      now,
+      convertUndefinedToNull(evaluationProject.lastRunAt),
+      convertUndefinedToNull(evaluationProject.estimatedCompletion)
+    ]);
+    
+    await connection.commit();
+    
+    // Return the created evaluation project
+    const createdProjects = await getEvaluationProjectsByProjectId(evaluationProject.projectId);
+    const createdProject = createdProjects.find(p => p.id === id);
+    
+    if (!createdProject) {
+      throw new Error('Failed to retrieve created evaluation project');
+    }
+    
+    return createdProject;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+export const updateEvaluationProject = async (id: string, updates: Partial<EvaluationProject>): Promise<EvaluationProject | null> => {
+  if (!pool || !(await isDatabaseAvailable())) {
+    throw new Error('Database not available for updating evaluation project');
+  }
+  
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    const convertUndefinedToNull = (value: unknown) => value === undefined ? null : value;
+    
+    const updateFields: string[] = [];
+    const updateParams: unknown[] = [];
+    
+    if (updates.name !== undefined) {
+      updateFields.push('name = ?');
+      updateParams.push(convertUndefinedToNull(updates.name));
+    }
+    
+    if (updates.description !== undefined) {
+      updateFields.push('description = ?');
+      updateParams.push(convertUndefinedToNull(updates.description));
+    }
+    
+    if (updates.modelName !== undefined) {
+      updateFields.push('model_name = ?');
+      updateParams.push(convertUndefinedToNull(updates.modelName));
+    }
+    
+    if (updates.evaluationType !== undefined) {
+      updateFields.push('evaluation_type = ?');
+      updateParams.push(convertUndefinedToNull(updates.evaluationType));
+    }
+    
+    if (updates.status !== undefined) {
+      updateFields.push('status = ?');
+      updateParams.push(convertUndefinedToNull(updates.status));
+    }
+    
+    if (updates.progress !== undefined) {
+      updateFields.push('progress = ?');
+      updateParams.push(convertUndefinedToNull(updates.progress));
+    }
+    
+    if (updates.accuracy !== undefined) {
+      updateFields.push('accuracy = ?');
+      updateParams.push(convertUndefinedToNull(updates.accuracy));
+    }
+    
+    if (updates.f1Score !== undefined) {
+      updateFields.push('f1_score = ?');
+      updateParams.push(convertUndefinedToNull(updates.f1Score));
+    }
+    
+    if (updates.latency !== undefined) {
+      updateFields.push('latency = ?');
+      updateParams.push(convertUndefinedToNull(updates.latency));
+    }
+    
+    if (updates.testCases !== undefined) {
+      updateFields.push('test_cases = ?');
+      updateParams.push(convertUndefinedToNull(updates.testCases));
+    }
+    
+    if (updates.completedTests !== undefined) {
+      updateFields.push('completed_tests = ?');
+      updateParams.push(convertUndefinedToNull(updates.completedTests));
+    }
+    
+    if (updates.dataset !== undefined) {
+      updateFields.push('dataset = ?');
+      updateParams.push(convertUndefinedToNull(updates.dataset));
+    }
+    
+    if (updates.evaluationMetrics !== undefined) {
+      updateFields.push('evaluation_metrics = ?');
+      updateParams.push(JSON.stringify(updates.evaluationMetrics));
+    }
+    
+    if (updates.createdBy !== undefined) {
+      updateFields.push('created_by = ?');
+      updateParams.push(convertUndefinedToNull(updates.createdBy));
+    }
+    
+    if (updates.assignedTo !== undefined) {
+      updateFields.push('assigned_to = ?');
+      updateParams.push(JSON.stringify(updates.assignedTo));
+    }
+    
+    if (updates.lastRunAt !== undefined) {
+      updateFields.push('last_run_at = ?');
+      updateParams.push(convertUndefinedToNull(updates.lastRunAt));
+    }
+    
+    if (updates.estimatedCompletion !== undefined) {
+      updateFields.push('estimated_completion = ?');
+      updateParams.push(convertUndefinedToNull(updates.estimatedCompletion));
+    }
+    
+    updateFields.push('updated_at = ?');
+    updateParams.push(new Date().toISOString().slice(0, 19).replace('T', ' '));
+    
+    if (updateFields.length > 0) {
+      const query = `UPDATE evaluation_projects SET ${updateFields.join(', ')} WHERE id = ?`;
+      updateParams.push(id);
+      await connection.execute(query, updateParams);
+    }
+    
+    await connection.commit();
+    
+    // Return the updated evaluation project
+    const allProjects = await getEvaluationProjectsByProjectId(updates.projectId || '');
+    return allProjects.find(p => p.id === id) || null;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+export const deleteEvaluationProject = async (id: string): Promise<boolean> => {
+  if (!pool || !(await isDatabaseAvailable())) {
+    throw new Error('Database not available for deleting evaluation project');
+  }
+  
+  try {
+    const convertUndefinedToNull = (value: unknown) => value === undefined ? null : value;
+    
+    const query = 'DELETE FROM evaluation_projects WHERE id = ?';
+    const [result] = await pool.execute(query, [convertUndefinedToNull(id)]);
+    
+    // @ts-expect-error: result is a mysql2 RowDataPacket[] which has affectedRows property
+    return result.affectedRows > 0;
+  } catch (error) {
+    console.error('Error deleting evaluation project from database:', error);
+    throw error;
+  }
+};
+
+// Team member statistics interface
+export interface TeamMemberStats {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  tasksAssigned: number;
+  tasksCompleted: number;
+  accuracy: number;
+  avgTimePerTask: string;
+  issuesReported: number;
+  lastActive: string;
+  role: string;
+}
+
+// Activity log interface
+export interface ActivityLog {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  timestamp: string;
+  details?: string;
+}
+
+// Workflow statistics interface
+export interface WorkflowStats {
+  date: string;
+  tasksCreated: number;
+  tasksCompleted: number;
+  issuesReported: number;
+}
+
+// Get team member statistics for a project
+export const getTeamMemberStatsByProjectId = async (projectId: string): Promise<TeamMemberStats[]> => {
+  if (!pool || !(await isDatabaseAvailable())) {
+    return [];
+  }
+  
+  try {
+    const convertUndefinedToNull = (value: unknown) => value === undefined ? null : value;
+    
+    // This query aggregates task and issue data per user to create team statistics
+    const query = `
+      SELECT 
+        u.id,
+        u.user_id as userId,
+        u.name,
+        u.email,
+        u.avatar_url as avatarUrl,
+        COUNT(t.id) as tasksAssigned,
+        SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) as tasksCompleted,
+        COALESCE(AVG(CASE WHEN t.status = 'completed' THEN CAST(REPLACE(REPLACE(t.actual_time, ' min', ''), ' hr', '') AS DECIMAL(10,2)) END), 0) as avgTimePerTask,
+        COUNT(i.id) as issuesReported,
+        COALESCE(MAX(t.updated_at), MAX(i.updated_at), u.created_at) as lastActive,
+        COALESCE(pr.role, 'member') as role
+      FROM users u
+      LEFT JOIN tasks t ON u.id = t.assignee_id AND t.project_id = ?
+      LEFT JOIN issues i ON u.id = i.reporter_id AND i.project_id = ?
+      LEFT JOIN (
+        SELECT owner as user_id, 'owner' as role, project_id FROM project_rbac WHERE project_id = ?
+        UNION
+        SELECT JSON_UNQUOTE(JSON_EXTRACT(admins, CONCAT('$[', num.n, ']'))) as user_id, 'admin' as role, project_id 
+        FROM project_rbac, (SELECT 0 as n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) num
+        WHERE project_id = ? AND JSON_EXTRACT(admins, CONCAT('$[', num.n, ']')) IS NOT NULL
+        UNION
+        SELECT JSON_UNQUOTE(JSON_EXTRACT(managers, CONCAT('$[', num.n, ']'))) as user_id, 'manager' as role, project_id 
+        FROM project_rbac, (SELECT 0 as n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) num
+        WHERE project_id = ? AND JSON_EXTRACT(managers, CONCAT('$[', num.n, ']')) IS NOT NULL
+      ) pr ON u.id = pr.user_id
+      WHERE u.id IN (
+        SELECT DISTINCT assignee_id FROM tasks WHERE project_id = ? AND assignee_id IS NOT NULL
+        UNION
+        SELECT DISTINCT reporter_id FROM issues WHERE project_id = ? AND reporter_id IS NOT NULL
+      )
+      GROUP BY u.id, u.user_id, u.name, u.email, u.avatar_url, pr.role
+      ORDER BY tasksAssigned DESC, tasksCompleted DESC
+    `;
+    
+    const params = Array(7).fill(convertUndefinedToNull(projectId));
+    const [rows] = await pool.execute(query, params);
+    return rows as TeamMemberStats[];
+  } catch (error) {
+    console.error('Error fetching team member stats from database:', error);
+    throw error;
+  }
+};
+
+// Get activity logs for a project
+export const getProjectActivityLogs = async (projectId: string, limit: number = 10): Promise<ActivityLog[]> => {
+  if (!pool || !(await isDatabaseAvailable())) {
+    return [];
+  }
+  
+  try {
+    const convertUndefinedToNull = (value: unknown) => value === undefined ? null : value;
+    
+    // This query combines task and issue activities to create a project activity log
+    const query = `
+      (SELECT 
+        CONCAT('task-', t.id) as id,
+        t.assignee_id as userId,
+        u.name as userName,
+        CONCAT('Completed task: ', t.title) as action,
+        'task' as targetType,
+        t.id as targetId,
+        t.updated_at as timestamp,
+        CONCAT('Task marked as ', t.status) as details
+      FROM tasks t
+      LEFT JOIN users u ON t.assignee_id = u.id
+      WHERE t.project_id = ? AND t.status = 'completed'
+      ORDER BY t.updated_at DESC
+      LIMIT ?)
+      UNION ALL
+      (SELECT 
+        CONCAT('issue-', i.id) as id,
+        i.reporter_id as userId,
+        u.name as userName,
+        CONCAT('Reported issue: ', i.title) as action,
+        'issue' as targetType,
+        i.id as targetId,
+        i.created_at as timestamp,
+        CONCAT('Severity: ', i.severity) as details
+      FROM issues i
+      LEFT JOIN users u ON i.reporter_id = u.id
+      WHERE i.project_id = ?
+      ORDER BY i.created_at DESC
+      LIMIT ?)
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `;
+    
+    const params = [
+      convertUndefinedToNull(projectId),
+      Math.ceil(limit / 2),
+      convertUndefinedToNull(projectId),
+      Math.ceil(limit / 2),
+      limit
+    ];
+    
+    const [rows] = await pool.execute(query, params);
+    return rows as ActivityLog[];
+  } catch (error) {
+    console.error('Error fetching project activity logs from database:', error);
+    throw error;
+  }
+};
+
+// Get workflow statistics for a project
+export const getProjectWorkflowStats = async (projectId: string, days: number = 30): Promise<WorkflowStats[]> => {
+  if (!pool || !(await isDatabaseAvailable())) {
+    return [];
+  }
+  
+  try {
+    const convertUndefinedToNull = (value: unknown) => value === undefined ? null : value;
+    
+    // This query gets daily workflow statistics for the past N days
+    const query = `
+      SELECT 
+        DATE(created_at) as date,
+        COUNT(CASE WHEN target_type = 'task' THEN 1 END) as tasksCreated,
+        COUNT(CASE WHEN target_type = 'task' AND status = 'completed' THEN 1 END) as tasksCompleted,
+        COUNT(CASE WHEN target_type = 'issue' THEN 1 END) as issuesReported
+      FROM (
+        SELECT 'task' as target_type, id, created_at, status, project_id FROM tasks WHERE project_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        UNION ALL
+        SELECT 'issue' as target_type, id, created_at, NULL as status, project_id FROM issues WHERE project_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+      ) combined
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `;
+    
+    const params = [
+      convertUndefinedToNull(projectId),
+      days,
+      convertUndefinedToNull(projectId),
+      days
+    ];
+    
+    const [rows] = await pool.execute(query, params);
+    return rows as WorkflowStats[];
+  } catch (error) {
+    console.error('Error fetching project workflow stats from database:', error);
     throw error;
   }
 };

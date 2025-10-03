@@ -307,20 +307,31 @@ export default function EvaluationProjectsTab({
 
   const handleCreateEvaluation = async () => {
     try {
-      // Create a new project with default values
-      const newProject = await projectService.createProject({
+      if (!projectId) {
+        throw new Error('Project ID is required');
+      }
+      
+      // Create a new evaluation project
+      const newEvaluationProject = await projectService.createEvaluationProject({
+        projectId: projectId,
         name: "New Evaluation Project",
         description: "Created from evaluation builder",
-        type: "General", // Changed from "Evaluation" to "General" to match valid ProjectType
-        status: "active"
+        modelName: "GPT-4",
+        evaluationType: "performance",
+        status: "pending",
+        progress: 0,
+        testCases: 100,
+        completedTests: 0,
+        dataset: "Sample Dataset",
+        evaluationMetrics: ["accuracy", "f1-score"],
+        createdBy: "current-user",
+        assignedTo: []
       });
       
-      // Navigate to the evaluation page for this new project
-      router.push(`/projects/evaluation/${newProject.id}`);
+      // Refresh the evaluation projects list
+      fetchEvaluationProjects(projectId);
     } catch (error) {
       console.error("Failed to create evaluation project:", error);
-      // Fallback: navigate to projects page if creation fails
-      router.push('/projects');
     }
   };
 
